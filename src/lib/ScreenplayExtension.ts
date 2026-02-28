@@ -196,10 +196,21 @@ export const ScreenplayBlock = Node.create({
                     if (nextChar === ')') {
                         if (dispatch) {
                             let tr = state.tr
-                            // Jump over the ')'
-                            const jumpPos = $from.pos + 1
-                            tr = tr.setSelection(TextSelection.create(doc, jumpPos))
-                            // Insert a space after it
+
+                            // Check if the character right before cursor is a space (from Korean IME swallowing the first space)
+                            const prevChar = $from.pos > 0 ? doc.textBetween($from.pos - 1, $from.pos) : ''
+                            if (prevChar === ' ' || prevChar === '\u00A0') {
+                                // Delete the swallowed space. The ')' shifts one position left.
+                                tr = tr.delete($from.pos - 1, $from.pos)
+                                // The position AFTER the ')' is now exactly $from.pos (since the node shifted left)
+                                tr = tr.setSelection(TextSelection.create(tr.doc, $from.pos))
+                            } else {
+                                // Jump over the ')'
+                                const jumpPos = $from.pos + 1
+                                tr = tr.setSelection(TextSelection.create(tr.doc, jumpPos))
+                            }
+
+                            // Insert a space after the parenthesis
                             tr = tr.insertText(' ')
                             dispatch(tr.scrollIntoView())
                         }
