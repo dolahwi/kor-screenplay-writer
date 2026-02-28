@@ -121,8 +121,11 @@ export default function Editor() {
     const acSuppressedRef = useRef(false)
     const [autoComplete, setAutoComplete] = useState<{ active: false } | { active: true; top: number; left: number; items: string[]; index: number }>({ active: false })
 
+    // Global suppression for prompt/autocomplete after selection via Enter
+    const insertSuppressionRef = useRef(false)
+
     const checkScenePrompt = (editor: any): boolean => {
-        if (promptSuppressedRef.current) {
+        if (insertSuppressionRef.current) {
             if (promptActiveRef.current) {
                 promptActiveRef.current = false
                 setScenePrompt({ active: false })
@@ -333,8 +336,15 @@ export default function Editor() {
         ],
         content: '',
         onUpdate: ({ editor }) => {
-            acSuppressedRef.current = false
-            promptSuppressedRef.current = false
+            if (insertSuppressionRef.current) {
+                acSuppressedRef.current = true
+                promptSuppressedRef.current = true
+                insertSuppressionRef.current = false
+            } else {
+                acSuppressedRef.current = false
+                promptSuppressedRef.current = false
+            }
+
             const acActive = checkAutoComplete(editor)
             if (acActive) {
                 if (promptActiveRef.current) {
@@ -439,6 +449,7 @@ export default function Editor() {
                             newText = (m ? m[1] : '') + option
                         }
 
+                        insertSuppressionRef.current = true
                         const tr = st.tr.delete(fromPos.start(), fromPos.pos).insertText(newText)
                         view.dispatch(tr.scrollIntoView())
 
@@ -491,20 +502,14 @@ export default function Editor() {
                         if (promptType === 'location') {
                             newText = baseText + option + ' - '
                         } else if (promptType === 'time') {
-                            let insertStr = option
-                            if (!baseText.match(/-\s*$/)) {
-                                if (!baseText.endsWith(' ')) {
-                                    insertStr = ' - ' + option
-                                } else {
-                                    insertStr = '- ' + option
-                                }
-                            }
-                            newText = baseText + insertStr
+                            const cleanBase = baseText.replace(/\s*-\s*$/, '')
+                            newText = cleanBase + ' - ' + option
                         } else {
                             // Fallback
                             newText = currentText
                         }
 
+                        insertSuppressionRef.current = true
                         const tr = st.tr.delete(fromPos.start(), fromPos.pos).insertText(newText)
                         view.dispatch(tr.scrollIntoView())
 
