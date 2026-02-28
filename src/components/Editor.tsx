@@ -40,6 +40,13 @@ export default function Editor() {
     const [scenePrompt, setScenePrompt] = useState({ active: false, type: 'location', top: 0, left: 0 })
     const [promptIndex, setPromptIndex] = useState(0)
 
+    // Auto-Complete State
+    const acActiveRef = useRef(false)
+    const acItemsRef = useRef<string[]>([])
+    const acIndexRef = useRef(0)
+    const acSearchRef = useRef('')
+    const [autoComplete, setAutoComplete] = useState<{ active: false } | { active: true; top: number; left: number; items: string[]; index: number }>({ active: false })
+
     const checkScenePrompt = (editor: any) => {
         const { state, view } = editor
         const { $from } = state.selection
@@ -80,6 +87,97 @@ export default function Editor() {
         }
     }
 
+    const checkAutoComplete = (editor: any) => {
+        const { state, view } = editor
+        const { $from } = state.selection
+        const node = $from.parent
+
+        if (node.type.name !== 'screenplayBlock') {
+            if (acActiveRef.current) {
+                acActiveRef.current = false
+                setAutoComplete({ active: false })
+            }
+            return
+        }
+
+        const format = node.attrs.format
+
+        if (format === 'scene') {
+            const text = node.textContent
+            const match = text.match(/^S#\s\d+\.\s+(.+)$/)
+            if (match) {
+                const search = match[1]
+                const scenes = new Set<string>()
+                state.doc.descendants((n: any) => {
+                    if (n.type.name === 'screenplayBlock' && n.attrs.format === 'scene' && n !== node) {
+                        const m = n.textContent.match(/^S#\s\d+\.\s+(.+)$/)
+                        if (m) scenes.add(m[1].trim())
+                    }
+                })
+
+                const matches = Array.from(scenes).filter(s => s.startsWith(search) && s !== search).slice(0, 10)
+                if (matches.length > 0) {
+                    try {
+                        const coords = view.coordsAtPos(state.selection.from)
+                        acActiveRef.current = true
+                        acItemsRef.current = matches
+                        acSearchRef.current = search
+                        if (acIndexRef.current >= matches.length) acIndexRef.current = 0
+
+                        setAutoComplete({
+                            active: true,
+                            top: coords.bottom + window.scrollY,
+                            left: coords.left + window.scrollX,
+                            items: matches,
+                            index: acIndexRef.current
+                        })
+                    } catch (e) { }
+                    return
+                }
+            }
+        } else if (format === 'dialogue') {
+            const text = node.textContent
+            if (!text.includes('\t') && text.trim().length > 0) {
+                const search = text.trim()
+                const chars = new Set<string>()
+                state.doc.descendants((n: any) => {
+                    if (n.type.name === 'screenplayBlock' && n.attrs.format === 'dialogue' && n !== node) {
+                        const tabIdx = n.textContent.indexOf('\t')
+                        if (tabIdx !== -1) {
+                            const c = n.textContent.substring(0, tabIdx).trim()
+                            if (c) chars.add(c)
+                        }
+                    }
+                })
+
+                const matches = Array.from(chars).filter(c => c.startsWith(search) && c !== search).slice(0, 10)
+                if (matches.length > 0) {
+                    try {
+                        const coords = view.coordsAtPos(state.selection.from)
+                        acActiveRef.current = true
+                        acItemsRef.current = matches
+                        acSearchRef.current = search
+                        if (acIndexRef.current >= matches.length) acIndexRef.current = 0
+
+                        setAutoComplete({
+                            active: true,
+                            top: coords.bottom + window.scrollY,
+                            left: coords.left + window.scrollX,
+                            items: matches,
+                            index: acIndexRef.current
+                        })
+                    } catch (e) { }
+                    return
+                }
+            }
+        }
+
+        if (acActiveRef.current) {
+            acActiveRef.current = false
+            setAutoComplete({ active: false })
+        }
+    }
+
     const editor = useEditor({
         immediatelyRender: false,
         extensions: [
@@ -95,6 +193,7 @@ export default function Editor() {
         content: '',
         onUpdate: ({ editor }) => {
             checkScenePrompt(editor)
+            checkAutoComplete(editor)
         },
         onSelectionUpdate: ({ editor }) => {
             // When selection changes, determine active format
@@ -104,6 +203,7 @@ export default function Editor() {
                 setCurrentFormat(node.attrs.format as ScreenplayFormat)
             }
             checkScenePrompt(editor)
+            checkAutoComplete(editor)
         },
         editorProps: {
             handleKeyDown: (view, event) => {
@@ -145,6 +245,41 @@ export default function Editor() {
                     if (event.key === 'Escape') {
                         promptActiveRef.current = false
                         setScenePrompt({ active: false, type: 'location', top: 0, left: 0 })
+                        return true
+                    }
+                }
+
+                if (acActiveRef.current) {
+                    if (event.key === 'ArrowDown') {
+                        event.preventDefault()
+                        const nextIdx = (acIndexRef.current + 1) % acItemsRef.current.length
+                        acIndexRef.current = nextIdx
+                        setAutoComplete(prev => prev.active ? { ...prev, index: nextIdx } : prev)
+                        return true
+                    }
+                    if (event.key === 'ArrowUp') {
+                        event.preventDefault()
+                        const nextIdx = (acIndexRef.current - 1 + acItemsRef.current.length) % acItemsRef.current.length
+                        acIndexRef.current = nextIdx
+                        setAutoComplete(prev => prev.active ? { ...prev, index: nextIdx } : prev)
+                        return true
+                    }
+                    if (event.key === 'Enter') {
+                        event.preventDefault()
+                        const option = acItemsRef.current[acIndexRef.current]
+                        const search = acSearchRef.current
+                        const { state, dispatch } = view
+                        const { $from } = state.selection
+                        const tr = state.tr.delete($from.pos - search.length, $from.pos).insertText(option)
+                        dispatch(tr.scrollIntoView())
+
+                        acActiveRef.current = false
+                        setAutoComplete({ active: false })
+                        return true
+                    }
+                    if (event.key === 'Escape') {
+                        acActiveRef.current = false
+                        setAutoComplete({ active: false })
                         return true
                     }
                 }
@@ -414,6 +549,24 @@ export default function Editor() {
                             <div
                                 key={opt}
                                 className={`px-3 py-1.5 rounded cursor-default transition-colors ${promptIndex === i ? 'bg-blue-600 text-white font-medium' : 'text-gray-800 dark:text-gray-200'}`}
+                            >
+                                {opt}
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Auto-Complete Overlay */}
+                {autoComplete.active && (
+                    <div
+                        className="fixed z-50 bg-white dark:bg-zinc-800 border shadow-xl rounded-md p-1.5 text-sm flex flex-col gap-1 min-w-32 max-h-48 overflow-y-auto"
+                        style={{ top: autoComplete.top + 8, left: autoComplete.left }}
+                    >
+                        <div className="px-2 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">최근 사용</div>
+                        {autoComplete.items.map((opt, i) => (
+                            <div
+                                key={opt}
+                                className={`px-3 py-1.5 rounded cursor-default transition-colors truncate ${autoComplete.index === i ? 'bg-emerald-600 text-white font-medium' : 'text-gray-800 dark:text-gray-200'}`}
                             >
                                 {opt}
                             </div>
