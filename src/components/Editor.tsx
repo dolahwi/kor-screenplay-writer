@@ -13,6 +13,62 @@ const FORMAT_LABELS: Record<ScreenplayFormat, string> = {
     dialogue: '대사 ⌘3',
 }
 
+const TUTORIAL_STEPS = [
+    {
+        title: "1. 씬(Scene) 작성하기",
+        desc: <>
+            키보드로 <strong>`ㅆ`</strong> 을 치고 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Spacebar</kbd>를 누르면 즉시 <strong>씬 블록</strong>으로 자동 전환됩니다.<br /><br />
+            장소 입력 후 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Spacebar</kbd>를 누르면 내부/외부 목록이 뜨고, 방향키로 선택 후 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Enter</kbd>를 치면 완벽한 양식으로 작성됩니다.<br />
+            비슷하게 시간대 입력도 목록에서 선택 가능합니다!
+        </>
+    },
+    {
+        title: "2. 지문(Action) 작성하기",
+        desc: <>
+            지문을 쓰다가 문단을 나누고 싶을 때는 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Shift</kbd> + <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Enter</kbd>를 누릅니다.<br /><br />
+            지문 작성을 마치고 다음 항목(대사)으로 넘어가고 싶을 때는 가볍게 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Enter</kbd>를 치면 됩니다.
+        </>
+    },
+    {
+        title: "3. 대사(Dialogue) 작성하기",
+        desc: <>
+            대사 항목에서 인물 이름을 적고 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Tab</kbd>을 누르면 곧바로 대사를 칠 수 있는 공간으로 건너뜁니다. <em>(아이패드 등에서는 <kbd className="bg-zinc-200 text-zinc-800 px-1 rounded">Spacebar</kbd> + <kbd className="bg-zinc-200 text-zinc-800 px-1 rounded">Tab</kbd> 권장)</em><br /><br />
+            지시문(행동)은 <strong>`행동`</strong> 이라고 쓰고 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Spacebar</kbd>를 두 번 연타하면 자동으로 괄호 `(행동)` 가 씌워집니다!<br />
+            줄바꿈은 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Shift</kbd> + <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Enter</kbd>, 인물 변경 완료는 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Enter</kbd>를 칩니다.
+        </>
+    },
+    {
+        title: "4. 단축키로 서식 즉시 변경",
+        desc: <>
+            지금 쓰고 있는 줄의 종류를 즉시 바꾸고 싶다면 아래 단축키를 애용하세요.<br /><br />
+            기본: <kbd className="bg-blue-100 text-blue-800 px-1 rounded">F1</kbd>, <kbd className="bg-blue-100 text-blue-800 px-1 rounded">F2</kbd>, <kbd className="bg-blue-100 text-blue-800 px-1 rounded">F3</kbd><br />
+            맥(Mac): <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Cmd + 1, 2, 3</kbd><br />
+            윈도우(Win): <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Ctrl + 1, 2, 3</kbd>
+        </>
+    },
+    {
+        title: "5. 똑똑한 자동 완성 기능",
+        desc: <>
+            한 번이라도 입력했던 <strong>등장인물 이름</strong>이나 <strong>씬 장소</strong>는 에디터가 모두 기억합니다.<br /><br />
+            나중에 초성만 살짝 쳐도 (예: <code>학교</code> ➔ <code>ㅎㄱ</code>) 목차가 뜨니, 일일이 다 칠 필요 없이 자동 완성을 누리세요!
+        </>
+    },
+    {
+        title: "6. 기기 완벽 지원",
+        desc: <>
+            이 앱은 최고의 성능을 위해 데스크탑 <strong>크롬(Chrome) 브라우저</strong> 사용을 권장합니다.<br /><br />
+            하지만 <strong>아이패드(iPad)나 스마트폰</strong>에서도 완벽하게 작동합니다! 주소창의 <code>홈 화면에 추가</code>를 눌러 진짜 앱처럼 바탕화면에 꺼내두고 써보세요.
+        </>
+    },
+    {
+        title: "7. 내보내기 및 폰트 설정",
+        desc: <>
+            작업 화면 우측 하단의 <strong>[표지 편집]</strong>을 눌러 제목을 세팅하고, 상단의 <strong>[PDF 저장]</strong>을 누르면 당장 제출 가능한 형태의 완벽한 한국형 대본이 생성됩니다.<br /><br />
+            또한 안전하게 파일로 <strong>저장하기(.json)</strong>, <strong>불러오기</strong>가 언제든 가능하며, 좌측 하단 버튼으로 <strong>폰트(명조/고딕)</strong>도 마음대로 바꿀 수 있습니다.
+        </>
+    }
+]
+
 const SCENE_OPTIONS = ['내부', '외부', '내부/외부', '외부/내부']
 const TIME_OPTIONS = ['아침', '낮', '저녁', '밤', '새벽']
 
@@ -100,6 +156,8 @@ export default function Editor() {
     const [isManualOpen, setIsManualOpen] = useState(false)
     const [isShowCredit, setIsShowCredit] = useState(false)
     const [isSansFont, setIsSansFont] = useState(false)
+    const [showTutorial, setShowTutorial] = useState(false)
+    const [tutorialStep, setTutorialStep] = useState(0)
 
     // Title Page State
     const [titlePage, setTitlePage] = useState<TitlePageData>({ title: '', author: '', contact: '' })
@@ -136,6 +194,27 @@ export default function Editor() {
             document.documentElement.style.removeProperty('--sp-font-family')
         }
     }, [isSansFont])
+
+    // Tutorial Init Check
+    useEffect(() => {
+        const hasSeenTutorial = localStorage.getItem('hasSeenKorScreenplayTutorial')
+        if (!hasSeenTutorial) {
+            setShowTutorial(true)
+        }
+    }, [])
+
+    const handleCloseTutorial = () => {
+        setShowTutorial(false)
+        localStorage.setItem('hasSeenKorScreenplayTutorial', 'true')
+    }
+
+    const handleNextTutorial = () => {
+        if (tutorialStep < TUTORIAL_STEPS.length - 1) {
+            setTutorialStep(s => s + 1)
+        } else {
+            handleCloseTutorial()
+        }
+    }
 
     const checkScenePrompt = (editor: any): boolean => {
         if (insertSuppressionRef.current) {
@@ -1024,6 +1103,16 @@ export default function Editor() {
 
                         <div className="flex justify-end pt-2 border-t border-gray-100 dark:border-zinc-800 shrink-0">
                             <button
+                                onClick={() => {
+                                    setShowTutorial(true)
+                                    setTutorialStep(0)
+                                    setIsManualOpen(false)
+                                }}
+                                className="mr-auto text-blue-600 dark:text-blue-400 font-bold hover:underline py-2 px-2 text-sm"
+                            >
+                                가이드 튜토리얼 다시 보기
+                            </button>
+                            <button
                                 onClick={() => setIsManualOpen(false)}
                                 className="bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-gray-800 dark:text-gray-200 font-bold py-2 px-8 rounded-md transition-colors shadow-sm"
                             >
@@ -1045,6 +1134,66 @@ export default function Editor() {
                         style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" }}
                     >
                         HWI
+                    </div>
+                </div>
+            )}
+
+            {/* Interactive Onboarding Tutorial Map */}
+            {showTutorial && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                    {/* Dark Backdrop */}
+                    <div className="absolute inset-0 bg-black/60 pointer-events-none transition-opacity"></div>
+
+                    {/* Tutorial Card */}
+                    <div className="relative bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        {/* Progress Bar */}
+                        <div className="flex h-1.5 bg-gray-100 dark:bg-zinc-800">
+                            <div
+                                className="bg-blue-600 transition-all duration-300 ease-out"
+                                style={{ width: `${((tutorialStep + 1) / TUTORIAL_STEPS.length) * 100}%` }}
+                            ></div>
+                        </div>
+
+                        <div className="p-6 md:p-8 flex flex-col gap-4">
+                            <div className="flex justify-between items-start gap-4">
+                                <h3 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white leading-tight">
+                                    {TUTORIAL_STEPS[tutorialStep].title}
+                                </h3>
+                                <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-bold text-xs px-2.5 py-1 rounded-full whitespace-nowrap">
+                                    {tutorialStep + 1} / {TUTORIAL_STEPS.length}
+                                </div>
+                            </div>
+
+                            <div className="text-gray-700 dark:text-gray-300 leading-relaxed min-h-[120px]">
+                                {TUTORIAL_STEPS[tutorialStep].desc}
+                            </div>
+                        </div>
+
+                        <div className="p-4 md:px-8 bg-gray-50 dark:bg-zinc-800/50 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between">
+                            <button
+                                onClick={handleCloseTutorial}
+                                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 font-medium text-sm px-2 py-1 transition-colors"
+                            >
+                                건너뛰기
+                            </button>
+
+                            <div className="flex gap-2">
+                                {tutorialStep > 0 && (
+                                    <button
+                                        onClick={() => setTutorialStep(s => s - 1)}
+                                        className="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors shadow-sm"
+                                    >
+                                        이전
+                                    </button>
+                                )}
+                                <button
+                                    onClick={handleNextTutorial}
+                                    className="px-6 py-2 text-sm font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-all shadow-md hover:shadow-lg active:scale-95"
+                                >
+                                    {tutorialStep === TUTORIAL_STEPS.length - 1 ? '시작하기!' : '다음 단계'}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
