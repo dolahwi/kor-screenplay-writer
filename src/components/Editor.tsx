@@ -200,28 +200,43 @@ export default function Editor() {
     const handleSave = async () => {
         if (!editor) return
 
+        const saveData = {
+            version: 2,
+            titlePage,
+            document: editor.getJSON()
+        }
+        const jsonString = JSON.stringify(saveData)
+
         try {
-            let handle = fileHandle
-            if (!handle) {
-                handle = await (window as any).showSaveFilePicker({
-                    suggestedName: 'script.json',
-                    types: [{
-                        description: 'JSON Files',
-                        accept: { 'application/json': ['.json'] },
-                    }],
-                })
-                setFileHandle(handle)
+            if ('showSaveFilePicker' in window) {
+                let handle = fileHandle
+                if (!handle) {
+                    handle = await (window as any).showSaveFilePicker({
+                        suggestedName: 'script.json',
+                        types: [{
+                            description: 'JSON Files',
+                            accept: { 'application/json': ['.json'] },
+                        }],
+                    })
+                    setFileHandle(handle)
+                }
+                const writable = await handle.createWritable()
+                await writable.write(jsonString)
+                await writable.close()
+                alert('저장되었습니다.')
+            } else {
+                // Fallback for iOS/iPadOS Safari
+                const blob = new Blob([jsonString], { type: "application/json" })
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = 'script.json'
+                document.body.appendChild(a)
+                a.click()
+                document.body.removeChild(a)
+                URL.revokeObjectURL(url)
+                alert('다운로드 폴더에 저장되었습니다.')
             }
-            const writable = await handle.createWritable()
-            // Wrap the data in a versioned object to store metadata
-            const saveData = {
-                version: 2,
-                titlePage,
-                document: editor.getJSON()
-            }
-            await writable.write(JSON.stringify(saveData))
-            await writable.close()
-            alert('저장되었습니다.')
         } catch (err) {
             console.error(err)
         }
@@ -230,45 +245,70 @@ export default function Editor() {
     const handleLoad = async () => {
         if (!editor) return
 
+        const processFileContent = (content: string) => {
+            try {
+                const json = JSON.parse(content)
+                // V2 Document Extraction & Title Page Restoration
+                let docToLoad = json
+                if (json.version === 2 && json.document) {
+                    docToLoad = json.document
+                    if (json.titlePage) {
+                        setTitlePage(json.titlePage)
+                    }
+                } else {
+                    // Legacy V1 Document loaded - clear title page
+                    setTitlePage({ title: '', author: '', contact: '' })
+                }
+
+                // Migrate legacy 4-format system ('character') to new 3-format system ('dialogue')
+                const migrateFormat = (node: any) => {
+                    if (node.type === 'screenplayBlock' && node.attrs && node.attrs.format === 'character') {
+                        node.attrs.format = 'dialogue'
+                    }
+                    if (node.content && Array.isArray(node.content)) {
+                        node.content.forEach(migrateFormat)
+                    }
+                }
+                if (docToLoad.type === 'doc' && docToLoad.content) {
+                    docToLoad.content.forEach(migrateFormat)
+                }
+
+                editor.commands.setContent(docToLoad)
+                alert('불러왔습니다.')
+            } catch (e) {
+                alert('잘못된 파일 형식입니다.')
+            }
+        }
+
         try {
-            const [handle] = await (window as any).showOpenFilePicker({
-                types: [{
-                    description: 'JSON Files',
-                    accept: { 'application/json': ['.json'] },
-                }],
-            })
-            setFileHandle(handle)
-            const file = await handle.getFile()
-            const content = await file.text()
-            const json = JSON.parse(content)
-
-            // V2 Document Extraction & Title Page Restoration
-            let docToLoad = json
-            if (json.version === 2 && json.document) {
-                docToLoad = json.document
-                if (json.titlePage) {
-                    setTitlePage(json.titlePage)
-                }
+            if ('showOpenFilePicker' in window) {
+                const [handle] = await (window as any).showOpenFilePicker({
+                    types: [{
+                        description: 'JSON Files',
+                        accept: { 'application/json': ['.json'] },
+                    }],
+                })
+                setFileHandle(handle)
+                const file = await handle.getFile()
+                const content = await file.text()
+                processFileContent(content)
             } else {
-                // Legacy V1 Document loaded - clear title page
-                setTitlePage({ title: '', author: '', contact: '' })
-            }
-
-            // Migrate legacy 4-format system ('character') to new 3-format system ('dialogue')
-            const migrateFormat = (node: any) => {
-                if (node.type === 'screenplayBlock' && node.attrs && node.attrs.format === 'character') {
-                    node.attrs.format = 'dialogue'
+                // Fallback for iOS/iPadOS Safari
+                const input = document.createElement('input')
+                input.type = 'file'
+                input.accept = '.json,application/json'
+                input.onchange = (e: any) => {
+                    const file = e.target.files[0]
+                    if (!file) return
+                    const reader = new FileReader()
+                    reader.onload = (re) => {
+                        const content = re.target?.result as string
+                        if (content) processFileContent(content)
+                    }
+                    reader.readAsText(file)
                 }
-                if (node.content && Array.isArray(node.content)) {
-                    node.content.forEach(migrateFormat)
-                }
+                input.click()
             }
-            if (docToLoad.type === 'doc' && docToLoad.content) {
-                docToLoad.content.forEach(migrateFormat)
-            }
-
-            // Load parsed document data safely into the editor
-            editor.commands.setContent(docToLoad)
         } catch (err) {
             console.error(err)
         }
