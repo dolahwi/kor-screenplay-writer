@@ -98,6 +98,7 @@ export default function Editor() {
     const [isImeComposing, setIsImeComposing] = useState(false)
     const [fileHandle, setFileHandle] = useState<any>(null)
     const [isManualOpen, setIsManualOpen] = useState(false)
+    const [isShowCredit, setIsShowCredit] = useState(false)
 
     // Title Page State
     const [titlePage, setTitlePage] = useState<TitlePageData>({ title: '', author: '', contact: '' })
@@ -844,14 +845,23 @@ export default function Editor() {
                     </div>
                 )}
 
-                {/* Manual Button (Bottom Left) */}
-                <div
-                    className="no-print fixed bottom-4 sm:bottom-6 left-4 sm:left-6 bg-white dark:bg-zinc-800 border dark:border-zinc-700 shadow-lg rounded-full p-2.5 sm:p-3 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-700 flex items-center justify-center gap-2 z-40 transition-colors group"
-                    onClick={() => setIsManualOpen(true)}
-                    title="설명서 보기"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-600 dark:text-gray-300 group-hover:text-blue-600 transition-colors"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                    <span className="font-bold text-gray-700 dark:text-gray-200 hidden sm:block pr-1">설명서</span>
+                {/* Bottom Left Buttons (Manual & Credit) */}
+                <div className="no-print fixed bottom-4 sm:bottom-6 left-4 sm:left-6 flex flex-col gap-2 z-40">
+                    <div
+                        className="bg-white dark:bg-zinc-800 border dark:border-zinc-700 shadow-lg rounded-full p-2.5 sm:p-3 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-700 flex items-center justify-center gap-2 transition-colors group"
+                        onClick={() => setIsManualOpen(true)}
+                        title="설명서 보기"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-600 dark:text-gray-300 group-hover:text-blue-600 transition-colors"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                        <span className="font-bold text-gray-700 dark:text-gray-200 hidden sm:block pr-1">설명서</span>
+                    </div>
+                    <div
+                        className="bg-white dark:bg-zinc-800 border dark:border-zinc-700 shadow-lg rounded-full px-4 py-2 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-700 flex items-center justify-center transition-colors group"
+                        onClick={() => setIsShowCredit(true)}
+                        title="만든이"
+                    >
+                        <span className="font-bold text-gray-700 dark:text-gray-200 text-xs uppercase tracking-widest group-hover:text-blue-600 transition-colors">By HWI</span>
+                    </div>
                 </div>
             </div>
 
@@ -989,6 +999,18 @@ export default function Editor() {
                                 닫기
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Credit Overlay */}
+            {isShowCredit && (
+                <div
+                    className="fixed inset-0 bg-black z-[100] flex items-center justify-center cursor-pointer"
+                    onClick={() => setIsShowCredit(false)}
+                >
+                    <div className="text-[20vw] sm:text-[25vw] font-black text-white tracking-widest select-none drop-shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:scale-105 transition-transform duration-500">
+                        HWI
                     </div>
                 </div>
             )}
