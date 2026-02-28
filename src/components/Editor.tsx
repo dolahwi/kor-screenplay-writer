@@ -526,7 +526,7 @@ export default function Editor() {
                         if (promptType === 'location') {
                             newText = baseText + option + ' - '
                         } else if (promptType === 'time') {
-                            const cleanBase = baseText.replace(/\s*-\s*$/, '')
+                            const cleanBase = baseText.replace(/[\s-]+$/, '')
                             newText = cleanBase + ' - ' + option
                         } else {
                             // Fallback
