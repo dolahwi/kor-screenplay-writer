@@ -195,11 +195,13 @@ export const ScreenplayBlock = Node.create({
                     const nextChar = doc.textBetween($from.pos, $from.pos + 1)
                     if (nextChar === ')') {
                         if (dispatch) {
+                            let tr = state.tr
                             // Jump over the ')'
-                            let tr = state.tr.setSelection(TextSelection.near(doc.resolve($from.pos + 1)))
+                            const jumpPos = $from.pos + 1
+                            tr = tr.setSelection(TextSelection.create(doc, jumpPos))
                             // Insert a space after it
                             tr = tr.insertText(' ')
-                            dispatch(tr)
+                            dispatch(tr.scrollIntoView())
                         }
                         return true
                     }
