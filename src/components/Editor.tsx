@@ -31,6 +31,7 @@ export default function Editor() {
     const [titlePage, setTitlePage] = useState<TitlePageData>({ title: '', author: '', contact: '' })
     const [isTitleModalOpen, setIsTitleModalOpen] = useState(false)
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
+    const fileInputRef = useRef<HTMLInputElement>(null)
 
     // Scene Prompt State
     const promptActiveRef = useRef(false)
@@ -293,25 +294,58 @@ export default function Editor() {
                 const content = await file.text()
                 processFileContent(content)
             } else {
-                // Fallback for iOS/iPadOS Safari
-                const input = document.createElement('input')
-                input.type = 'file'
-                input.accept = '.json,application/json'
-                input.onchange = (e: any) => {
-                    const file = e.target.files[0]
-                    if (!file) return
-                    const reader = new FileReader()
-                    reader.onload = (re) => {
-                        const content = re.target?.result as string
-                        if (content) processFileContent(content)
-                    }
-                    reader.readAsText(file)
+                // Fallback for iOS/iPadOS Safari: trigger actual DOM input
+                if (fileInputRef.current) {
+                    fileInputRef.current.click()
                 }
-                input.click()
             }
         } catch (err) {
             console.error(err)
         }
+    }
+
+    const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+        const reader = new FileReader()
+        reader.onload = (re) => {
+            const content = re.target?.result as string
+            if (content) {
+                try {
+                    const json = JSON.parse(content)
+                    // V2 Document Extraction & Title Page Restoration
+                    let docToLoad = json
+                    if (json.version === 2 && json.document) {
+                        docToLoad = json.document
+                        if (json.titlePage) {
+                            setTitlePage(json.titlePage)
+                        }
+                    } else {
+                        setTitlePage({ title: '', author: '', contact: '' })
+                    }
+
+                    const migrateFormat = (node: any) => {
+                        if (node.type === 'screenplayBlock' && node.attrs && node.attrs.format === 'character') {
+                            node.attrs.format = 'dialogue'
+                        }
+                        if (node.content && Array.isArray(node.content)) {
+                            node.content.forEach(migrateFormat)
+                        }
+                    }
+                    if (docToLoad.type === 'doc' && docToLoad.content) {
+                        docToLoad.content.forEach(migrateFormat)
+                    }
+
+                    editor?.commands.setContent(docToLoad)
+                    alert('불러왔습니다.')
+                } catch (err) {
+                    alert('잘못된 파일 형식입니다.')
+                }
+            }
+        }
+        reader.readAsText(file)
+        // Reset input so the same file can be loaded again if needed
+        e.target.value = ''
     }
 
     const setFormat = (format: ScreenplayFormat) => {
@@ -347,6 +381,13 @@ export default function Editor() {
             <div className="no-print border-b bg-gray-50 flex items-center justify-between px-4 py-2 shrink-0">
                 <div className="font-bold text-lg hidden sm:block">Kor Screenplay Writer</div>
                 <div className="flex gap-2">
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileInputChange}
+                        accept=".json,application/json"
+                        className="hidden"
+                    />
                     <button onClick={handleLoad} className="px-3 py-1 bg-white border rounded shadow-sm hover:bg-gray-50 text-sm">불러오기</button>
                     <button onClick={handleSave} className="px-3 py-1 bg-blue-600 text-white border rounded shadow-sm hover:bg-blue-700 text-sm">저장하기</button>
                     <button
