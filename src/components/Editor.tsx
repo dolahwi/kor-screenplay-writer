@@ -51,8 +51,10 @@ export default function Editor() {
     const promptActiveRef = useRef(false)
     const promptTypeRef = useRef<'location' | 'time'>('location')
     const promptIndexRef = useRef(0)
-    const [scenePrompt, setScenePrompt] = useState({ active: false, type: 'location', top: 0, left: 0 })
-    const [promptIndex, setPromptIndex] = useState(0)
+    const promptItemsRef = useRef<string[]>([])
+    const promptSearchRef = useRef('')
+    const promptSuppressedRef = useRef(false)
+    const [scenePrompt, setScenePrompt] = useState<{ active: false } | { active: true; type: 'location' | 'time'; top: number; left: number; items: string[]; index: number }>({ active: false })
 
     // Auto-Complete State
     const acActiveRef = useRef(false)
@@ -60,14 +62,13 @@ export default function Editor() {
     const acIndexRef = useRef(0)
     const acSearchRef = useRef('')
     const acSuppressedRef = useRef(false)
-    const promptSuppressedRef = useRef(false)
     const [autoComplete, setAutoComplete] = useState<{ active: false } | { active: true; top: number; left: number; items: string[]; index: number }>({ active: false })
 
     const checkScenePrompt = (editor: any): boolean => {
         if (promptSuppressedRef.current) {
             if (promptActiveRef.current) {
                 promptActiveRef.current = false
-                setScenePrompt({ active: false, type: 'location', top: 0, left: 0 })
+                setScenePrompt({ active: false })
             }
             return false
         }
@@ -79,35 +80,56 @@ export default function Editor() {
         if (node.type.name === 'screenplayBlock' && node.attrs.format === 'scene') {
             const text = node.textContent
             let promptType: 'location' | 'time' | null = null
+            let search = ''
 
-            if (/^S#\s\d+\.\s*$/.test(text)) {
-                promptType = 'location'
-            } else if (/^S#\s\d+\.\s+(내부|외부|내부\/외부|외부\/내부)\s*-\s+.*?(?:\s*-\s*)$/.test(text)) {
+            const locMatch = text.match(/^S#\s\d+\.\s*(.*?)$/)
+            const timeMatch = text.match(/^S#\s\d+\.\s+(내부|외부|내부\/외부|외부\/내부)\s*-\s*(.*?)$/)
+
+            if (timeMatch && !timeMatch[2].includes('-')) {
                 promptType = 'time'
+                search = timeMatch[2].trim()
+            } else if (locMatch && !locMatch[1].includes('-')) {
+                promptType = 'location'
+                search = locMatch[1].trim()
             }
 
             if (promptType) {
-                try {
-                    const coords = view.coordsAtPos(state.selection.from)
-                    if (!promptActiveRef.current || promptTypeRef.current !== promptType) {
+                const currentList = promptType === 'location' ? SCENE_OPTIONS : TIME_OPTIONS
+                const searchChoseong = getChoseong(search)
+
+                const matches = search ? currentList.filter(o =>
+                    o.startsWith(search) || getChoseong(o).startsWith(searchChoseong)
+                ) : currentList
+
+                if (matches.length > 0) {
+                    try {
+                        const coords = view.coordsAtPos(state.selection.from)
                         promptActiveRef.current = true
                         promptTypeRef.current = promptType
-                        promptIndexRef.current = 0
-                        setPromptIndex(0)
-                        setScenePrompt({ active: true, type: promptType, top: coords.bottom + window.scrollY, left: coords.left + window.scrollX })
-                    } else {
-                        setScenePrompt(prev => ({ ...prev, top: coords.bottom + window.scrollY, left: coords.left + window.scrollX }))
+                        promptItemsRef.current = matches
+                        promptSearchRef.current = search
+
+                        if (promptIndexRef.current >= matches.length) promptIndexRef.current = 0
+
+                        setScenePrompt({
+                            active: true,
+                            type: promptType,
+                            top: coords.bottom + window.scrollY,
+                            left: coords.left + window.scrollX,
+                            items: matches,
+                            index: promptIndexRef.current
+                        })
+                    } catch (e) {
+                        // Ignore transient coordinate errors
                     }
                     return true
-                } catch (e) {
-                    // Ignore transient coordinate errors
                 }
             }
         }
 
         if (promptActiveRef.current) {
             promptActiveRef.current = false
-            setScenePrompt({ active: false, type: 'location', top: 0, left: 0 })
+            setScenePrompt({ active: false })
         }
         return false
     }
@@ -276,11 +298,12 @@ export default function Editor() {
                             promptActiveRef.current = true
                             promptTypeRef.current = promptType
                             promptIndexRef.current = 0
-                            setPromptIndex(0)
                             promptSuppressedRef.current = false
                             try {
                                 const coords = view.coordsAtPos(state.selection.from)
-                                setScenePrompt({ active: true, type: promptType, top: coords.bottom + window.scrollY, left: coords.left + window.scrollX })
+                                // Fetch items again for toggle continuity
+                                const currentList = promptType === 'location' ? SCENE_OPTIONS : TIME_OPTIONS
+                                setScenePrompt({ active: true, type: promptType, top: coords.bottom + window.scrollY, left: coords.left + window.scrollX, items: currentList, index: 0 })
                             } catch (e) { }
                         }
                         return true
@@ -288,50 +311,68 @@ export default function Editor() {
                         event.preventDefault()
                         promptSuppressedRef.current = true
                         promptActiveRef.current = false
-                        setScenePrompt({ active: false, type: 'location', top: 0, left: 0 })
+                        setScenePrompt({ active: false })
                         return true
                     }
                 }
 
                 if (promptActiveRef.current) {
-                    const currentList = promptTypeRef.current === 'location' ? SCENE_OPTIONS : TIME_OPTIONS
                     if (event.key === ' ' || event.key === 'Spacebar') {
                         event.preventDefault()
-                        const nextIdx = (promptIndexRef.current + 1) % currentList.length
+                        const nextIdx = (promptIndexRef.current + 1) % promptItemsRef.current.length
                         promptIndexRef.current = nextIdx
-                        setPromptIndex(nextIdx)
+                        setScenePrompt(prev => prev.active ? { ...prev, index: nextIdx } : prev)
+                        return true
+                    }
+                    if (event.key === 'ArrowDown') {
+                        event.preventDefault()
+                        const nextIdx = (promptIndexRef.current + 1) % promptItemsRef.current.length
+                        promptIndexRef.current = nextIdx
+                        setScenePrompt(prev => prev.active ? { ...prev, index: nextIdx } : prev)
+                        return true
+                    }
+                    if (event.key === 'ArrowUp') {
+                        event.preventDefault()
+                        const nextIdx = (promptIndexRef.current - 1 + promptItemsRef.current.length) % promptItemsRef.current.length
+                        promptIndexRef.current = nextIdx
+                        setScenePrompt(prev => prev.active ? { ...prev, index: nextIdx } : prev)
                         return true
                     }
                     if (event.key === 'Enter') {
                         event.preventDefault()
-                        const option = currentList[promptIndexRef.current]
-                        const { state, dispatch } = view
-                        const { $from } = state.selection
-                        const text = $from.parent.textContent
+                        const option = promptItemsRef.current[promptIndexRef.current]
 
-                        if (promptTypeRef.current === 'location') {
-                            const tr = state.tr.insertText(option + ' - ')
-                            dispatch(tr)
-                        } else {
-                            // Replace trailing dash and spaces with standardized string
-                            const match = text.match(/(\s*-\s*)$/)
-                            if (match) {
-                                const tr = state.tr.delete($from.pos - match[1].length, $from.pos).insertText(' - ' + option)
-                                dispatch(tr)
-                            } else {
-                                const tr = state.tr.insertText(' - ' + option)
-                                dispatch(tr)
-                            }
+                        if (view.composing) {
+                            view.dom.blur()
+                            view.dom.focus()
                         }
 
-                        promptActiveRef.current = false
-                        setScenePrompt({ active: false, type: 'location', top: 0, left: 0 })
+                        setTimeout(() => {
+                            const st = view.state
+                            const fromPos = st.selection.$from
+                            const currentText = fromPos.parent.textContent
+                            let newText = ''
+
+                            if (promptTypeRef.current === 'location') {
+                                const m = currentText.match(/^(S#\s\d+\.\s+)/)
+                                newText = (m ? m[1] : 'S# 1. ') + option + ' - '
+                            } else {
+                                const m = currentText.match(/^(S#\s\d+\.\s+(?:내부|외부|내부\/외부|외부\/내부)\s*-\s*)/)
+                                newText = (m ? m[1] : 'S# 1. 외부 - ') + option
+                            }
+
+                            const tr = st.tr.delete(fromPos.start(), fromPos.pos).insertText(newText)
+                            view.dispatch(tr.scrollIntoView())
+
+                            promptActiveRef.current = false
+                            setScenePrompt({ active: false })
+                        }, 0)
                         return true
                     }
                     if (event.key === 'Escape') {
                         promptActiveRef.current = false
                         promptSuppressedRef.current = true
-                        setScenePrompt({ active: false, type: 'location', top: 0, left: 0 })
+                        setScenePrompt({ active: false })
                         return true
                     }
                 }
@@ -361,14 +402,31 @@ export default function Editor() {
                     if (event.key === 'Enter') {
                         event.preventDefault()
                         const option = acItemsRef.current[acIndexRef.current]
-                        const search = acSearchRef.current
-                        const { state, dispatch } = view
-                        const { $from } = state.selection
-                        const tr = state.tr.delete($from.pos - search.length, $from.pos).insertText(option)
-                        dispatch(tr.scrollIntoView())
 
-                        acActiveRef.current = false
-                        setAutoComplete({ active: false })
+                        if (view.composing) {
+                            view.dom.blur()
+                            view.dom.focus()
+                        }
+
+                        setTimeout(() => {
+                            const st = view.state
+                            const fromPos = st.selection.$from
+                            const currentText = fromPos.parent.textContent
+                            let newText = ''
+
+                            if (fromPos.parent.attrs.format === 'scene') {
+                                const m = currentText.match(/^(S#\s\d+\.\s+)/)
+                                newText = (m ? m[1] : 'S# 1. ') + option
+                            } else {
+                                newText = option
+                            }
+
+                            const tr = st.tr.delete(fromPos.start(), fromPos.pos).insertText(newText)
+                            view.dispatch(tr.scrollIntoView())
+
+                            acActiveRef.current = false
+                            setAutoComplete({ active: false })
+                        }, 0)
                         return true
                     }
                     if (event.key === 'Escape') {
@@ -638,13 +696,13 @@ export default function Editor() {
                 {/* Scene Auto-prompt Overlay */}
                 {scenePrompt.active && (
                     <div
-                        className="fixed z-50 bg-white dark:bg-zinc-800 border shadow-xl rounded-md p-1.5 text-sm flex flex-col gap-1 w-32"
+                        className="fixed z-50 bg-white dark:bg-zinc-800 border shadow-xl rounded-md p-1.5 text-sm flex flex-col gap-1 min-w-32 max-h-48 overflow-y-auto"
                         style={{ top: scenePrompt.top + 8, left: scenePrompt.left }}
                     >
-                        {(scenePrompt.type === 'location' ? SCENE_OPTIONS : TIME_OPTIONS).map((opt, i) => (
+                        {scenePrompt.items.map((opt, i) => (
                             <div
                                 key={opt}
-                                className={`px-3 py-1.5 rounded cursor-default transition-colors ${promptIndex === i ? 'bg-blue-600 text-white font-medium' : 'text-gray-800 dark:text-gray-200'}`}
+                                className={`px-3 py-1.5 rounded cursor-default transition-colors ${scenePrompt.index === i ? 'bg-blue-600 text-white font-medium' : 'text-gray-800 dark:text-gray-200'}`}
                             >
                                 {opt}
                             </div>
