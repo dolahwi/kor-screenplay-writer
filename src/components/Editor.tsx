@@ -962,8 +962,8 @@ export default function Editor() {
 
                         <div className="overflow-y-auto pr-2 pb-4 text-sm text-gray-700 dark:text-gray-300 space-y-6">
 
-                            <div className="bg-blue-600 text-white rounded-lg p-4 font-bold text-center text-lg sm:text-xl shadow-md border border-blue-700 drop-shadow-sm">
-                                "tab, shift, enter 만 알면 당신도 시나리오 전문가!"
+                            <div className="text-red-500 font-bold text-center text-lg sm:text-xl py-2 drop-shadow-sm">
+                                "Tab, Shift, Enter 만 알면 당신도 시나리오 전문가!"
                             </div>
 
                             <section>
@@ -1018,7 +1018,7 @@ export default function Editor() {
 
                             <div className="pt-6 pb-2 text-center text-gray-500 dark:text-gray-400 text-xs sm:text-sm font-medium italic border-t border-gray-100 dark:border-zinc-800 break-keep">
                                 누가 이걸 만들었을까 궁금하신가요? 바로 <strong className="text-indigo-500 dark:text-indigo-400">Antigravity</strong> 입니다!<br className="hidden sm:block" />
-                                그의 노예는 좌측 하단의 <strong className="text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-zinc-800 px-1 py-0.5 rounded">WHO</strong> 고딕 버튼을 눌러보세요.
+                                <span className="text-gray-600 dark:text-gray-300">그의 노예는 <strong className="bg-gray-100 dark:bg-zinc-800 px-1 py-0.5 rounded">WHO</strong>?</span>
                             </div>
                         </div>
 
