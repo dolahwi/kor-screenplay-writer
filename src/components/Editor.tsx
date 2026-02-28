@@ -1104,7 +1104,7 @@ export default function Editor() {
                             <div className="text-[11px] text-gray-500 dark:text-gray-400 mt-8 pt-4 border-t border-gray-100 dark:border-zinc-800 leading-relaxed">
                                 한글로 Final Draft 를 사용 불가능한 사람들을 위해... 대한민국에 맞는 시나리오 에디터를 만들었습니다.<br />
                                 버전 v.1.0<br />
-                                문의/건의 사항 jungw02@naver.com<br />
+                                문의/건의 사항 <a href="mailto:jungw02@naver.com" className="text-blue-500 hover:text-blue-600 underline underline-offset-2">jungw02@naver.com</a><br />
                                 여러분의 소중한 말 한마디가 여러분을 편하게 해드릴 수 있습니다.
                             </div>
 
