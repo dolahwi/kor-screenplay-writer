@@ -33,19 +33,22 @@ const getChoseong = (str: string) => {
 const getScenePromptMatches = (text: string) => {
     let promptType: 'location' | 'time' | null = null
     let search = ''
+    let rawSearch = ''
 
     const locMatch = text.match(/^S#\s\d+\.\s*(.*?)$/)
     const timeMatch = text.match(/^S#\s\d+\.\s+(내부|외부|내부\/외부|외부\/내부)\s*-\s*(.*?)$/)
 
     if (timeMatch && !timeMatch[2].includes('-')) {
         promptType = 'time'
-        search = timeMatch[2].trim()
+        rawSearch = timeMatch[2]
+        search = rawSearch.trim()
     } else if (locMatch && !locMatch[1].includes('-')) {
         promptType = 'location'
-        search = locMatch[1].trim()
+        rawSearch = locMatch[1]
+        search = rawSearch.trim()
     }
 
-    if (!promptType) return { promptType: null, matches: [], search: '' }
+    if (!promptType) return { promptType: null, matches: [], search: '', rawSearch: '' }
 
     const currentList = promptType === 'location' ? SCENE_OPTIONS : TIME_OPTIONS
     const searchChoseong = getChoseong(search)
@@ -55,7 +58,7 @@ const getScenePromptMatches = (text: string) => {
         o.startsWith(search) || getChoseong(o).startsWith(searchChoseong)
     ) : currentList
 
-    return { promptType, matches, search }
+    return { promptType, matches, search, rawSearch }
 }
 
 interface TitlePageData {
@@ -106,9 +109,19 @@ export default function Editor() {
         const node = $from.parent
 
         if (node.type.name === 'screenplayBlock' && node.attrs.format === 'scene') {
-            const { promptType, matches, search } = getScenePromptMatches(node.textContent)
+            const { promptType, matches, search, rawSearch } = getScenePromptMatches(node.textContent)
 
             if (promptType && matches.length > 0) {
+                if (promptActiveRef.current && rawSearch !== search && rawSearch.endsWith(' ')) {
+                    setTimeout(() => {
+                        view.dispatch(state.tr.delete(state.selection.from - 1, state.selection.from))
+                        const nextIdx = (promptIndexRef.current + 1) % matches.length
+                        promptIndexRef.current = nextIdx
+                        setScenePrompt(prev => prev.active ? { ...prev, index: nextIdx } : prev)
+                    }, 0)
+                    return true
+                }
+
                 try {
                     const coords = view.coordsAtPos(state.selection.from)
                     promptActiveRef.current = true
@@ -167,7 +180,8 @@ export default function Editor() {
             const text = node.textContent
             const matchFull = text.match(/^S#\s\d+\.\s+(.+)$/)
             if (matchFull) {
-                const search = matchFull[1].trim()
+                const rawSearch = matchFull[1]
+                const search = rawSearch.trim()
                 if (!search) {
                     if (acActiveRef.current) {
                         acActiveRef.current = false
@@ -190,6 +204,16 @@ export default function Editor() {
                 }).slice(0, 10)
 
                 if (matches.length > 0) {
+                    if (acActiveRef.current && rawSearch !== search && rawSearch.endsWith(' ')) {
+                        setTimeout(() => {
+                            view.dispatch(state.tr.delete(state.selection.from - 1, state.selection.from))
+                            const nextIdx = (acIndexRef.current + 1) % matches.length
+                            acIndexRef.current = nextIdx
+                            setAutoComplete(prev => prev.active ? { ...prev, index: nextIdx } : prev)
+                        }, 0)
+                        return true
+                    }
+
                     try {
                         const coords = view.coordsAtPos(state.selection.from)
                         acActiveRef.current = true
@@ -211,6 +235,7 @@ export default function Editor() {
         } else if (format === 'dialogue') {
             const text = node.textContent
             if (!text.includes('\t') && text.trim().length > 0) {
+                const rawSearch = text
                 const search = text.trim()
                 const chars = new Set<string>()
                 state.doc.descendants((n: any) => {
@@ -230,6 +255,16 @@ export default function Editor() {
                 }).slice(0, 10)
 
                 if (matches.length > 0) {
+                    if (acActiveRef.current && rawSearch !== search && rawSearch.endsWith(' ')) {
+                        setTimeout(() => {
+                            view.dispatch(state.tr.delete(state.selection.from - 1, state.selection.from))
+                            const nextIdx = (acIndexRef.current + 1) % matches.length
+                            acIndexRef.current = nextIdx
+                            setAutoComplete(prev => prev.active ? { ...prev, index: nextIdx } : prev)
+                        }, 0)
+                        return true
+                    }
+
                     try {
                         const coords = view.coordsAtPos(state.selection.from)
                         acActiveRef.current = true
