@@ -962,6 +962,10 @@ export default function Editor() {
 
                         <div className="overflow-y-auto pr-2 pb-4 text-sm text-gray-700 dark:text-gray-300 space-y-6">
 
+                            <div className="bg-blue-600 text-white rounded-lg p-4 font-bold text-center text-lg sm:text-xl shadow-md border border-blue-700 drop-shadow-sm">
+                                "tab, shift, enter 만 알면 당신도 시나리오 전문가!"
+                            </div>
+
                             <section>
                                 <h3 className="font-bold text-base text-gray-900 dark:text-gray-100 mb-2 border-l-4 border-blue-500 pl-2">1. 기본 서식 단축키 (Mac/Win 공통)</h3>
                                 <ul className="list-disc pl-5 space-y-1.5">
@@ -1002,14 +1006,20 @@ export default function Editor() {
                             </section>
 
                             <section>
-                                <h3 className="font-bold text-base text-gray-900 dark:text-gray-100 mb-2 border-l-4 border-purple-500 pl-2">5. 저장 및 내보내기</h3>
+                                <h3 className="font-bold text-base text-gray-900 dark:text-gray-100 mb-2 border-l-4 border-purple-500 pl-2">5. 문서 설정 및 내보내기</h3>
                                 <ul className="list-disc pl-5 space-y-1.5">
-                                    <li><strong>저장하기 (.json)</strong>: 현재 작업 중인 시나리오 원본 데이터를 컴퓨터에 파일로 저장합니다.</li>
-                                    <li><strong>불러오기</strong>: 다운로드 받았던 .json 파일을 가져와서 하던 작업을 계속할 수 있습니다.</li>
-                                    <li><strong>PDF 저장</strong>: 우측 하단의 `표지 편집` 버튼을 눌러 제목과 이름을 세팅한 뒤, 상단 <strong>PDF 저장</strong> 버튼을 누르면 인쇄소에 보낼 수 있는 한국 표준 A4 규격의 시나리오 PDF가 생성됩니다.</li>
+                                    <li><strong>글꼴 변경 (명조체/고딕체)</strong>: 좌측 하단의 <strong>[명조체]</strong> 버튼을 누르면 에디터 전체 글꼴이 명조와 고딕으로 즉시 전환됩니다.</li>
+                                    <li><strong>표지 편집</strong>: 우측 하단의 <strong>[표지 편집]</strong> 버튼을 눌러 작품 제목과 지은이를 입력하시면 PDF 생성 시 자동으로 표지가 한 장 만들어집니다.</li>
+                                    <li><strong>저장하기 (.json)</strong>: 현재 작업 중인 시나리오 원본 데이터를 컴퓨터에 파일로 보관하실 수 있습니다.</li>
+                                    <li><strong>불러오기</strong>: 다운로드 받았던 .json 파일을 가져와 언제든 작업을 이어나갈 수 있습니다.</li>
+                                    <li><strong>PDF 내보내기</strong>: 상단의 <strong>[PDF 저장]</strong> 버튼을 누르시면, 인쇄소나 제작사에 바로 제출 가능한 한국 영화 표준 규격의 프로페셔널한 대본 형태(표지 포함)로 파일이 깔끔하게 완성됩니다.</li>
                                 </ul>
                             </section>
 
+                            <div className="pt-6 pb-2 text-center text-gray-500 dark:text-gray-400 text-xs sm:text-sm font-medium italic border-t border-gray-100 dark:border-zinc-800 break-keep">
+                                누가 이걸 만들었을까 궁금하신가요? 바로 <strong className="text-indigo-500 dark:text-indigo-400">Antigravity</strong> 입니다!<br className="hidden sm:block" />
+                                그의 노예는 좌측 하단의 <strong className="text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-zinc-800 px-1 py-0.5 rounded">WHO</strong> 고딕 버튼을 눌러보세요.
+                            </div>
                         </div>
 
                         <div className="flex justify-end pt-2 border-t border-gray-100 dark:border-zinc-800 shrink-0">
