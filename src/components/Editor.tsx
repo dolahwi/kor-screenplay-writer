@@ -18,8 +18,8 @@ const TUTORIAL_STEPS = [
         title: "1. 씬(Scene) 작성하기",
         desc: <>
             키보드로 <strong>`ㅆ`</strong> 을 치고 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Spacebar</kbd>를 누르면 즉시 <strong>씬 블록</strong>으로 자동 전환됩니다.<br /><br />
-            장소 입력 후 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Spacebar</kbd>를 누르면 내부/외부 목록이 뜨고, 방향키로 선택 후 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Enter</kbd>를 치면 완벽한 양식으로 작성됩니다.<br />
-            비슷하게 시간대 입력도 목록에서 선택 가능합니다!
+            내부/외부 목록이 뜨고, <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Tab</kbd> or 방향키로 선택 후 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Enter</kbd>를 치면 작성됩니다.<br />
+            장소 입력 후 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Spacebar</kbd> 누르면 동일하게 시간대 선택 가능합니다.
         </>
     },
     {
@@ -33,8 +33,8 @@ const TUTORIAL_STEPS = [
         title: "3. 대사(Dialogue) 작성하기",
         desc: <>
             대사 항목에서 인물 이름을 적고 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Tab</kbd>을 누르면 곧바로 대사를 칠 수 있는 공간으로 건너뜁니다. <em>(아이패드 등에서는 <kbd className="bg-zinc-200 text-zinc-800 px-1 rounded">Spacebar</kbd> + <kbd className="bg-zinc-200 text-zinc-800 px-1 rounded">Tab</kbd> 권장)</em><br /><br />
-            지시문(행동)은 <strong>`행동`</strong> 이라고 쓰고 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Spacebar</kbd>를 두 번 연타하면 자동으로 괄호 `(행동)` 가 씌워집니다!<br />
-            줄바꿈은 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Shift</kbd> + <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Enter</kbd>, 인물 변경 완료는 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Enter</kbd>를 칩니다.
+            지시문(행동)은 괄호를 치고 행동을 작성 후 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Spacebar</kbd>를 두 번 연타하면 자동으로 괄호 `(행동)` 가 씌워집니다!<br />
+            대사의 줄바꿈은 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Shift</kbd> + <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Enter</kbd>, 인물 변경은 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Enter</kbd>를 칩니다.
         </>
     },
     {
@@ -1140,9 +1140,9 @@ export default function Editor() {
 
             {/* Interactive Onboarding Tutorial Map (Floating Speech Bubble) */}
             {showTutorial && (
-                <div className="fixed bottom-24 right-4 sm:right-8 z-[200] w-[calc(100vw-32px)] sm:w-80 md:w-96 drop-shadow-2xl animate-in slide-in-from-bottom-5 fade-in duration-300 pointer-events-auto">
+                <div className={`fixed z-[200] w-[calc(100vw-32px)] sm:w-80 md:w-96 drop-shadow-2xl animate-in slide-in-from-bottom-5 fade-in duration-300 pointer-events-auto transition-all ${tutorialStep === 6 ? 'bottom-24 left-1/2 -translate-x-1/2' : 'bottom-24 right-4 sm:right-8'}`}>
                     {/* Speech Bubble Tail */}
-                    <div className="absolute -bottom-2 right-6 w-5 h-5 bg-white dark:bg-zinc-900 rotate-45 border-r border-b border-gray-100 dark:border-zinc-800 rounded-sm"></div>
+                    <div className={`absolute -bottom-2 w-5 h-5 bg-white dark:bg-zinc-900 rotate-45 border-r border-b border-gray-100 dark:border-zinc-800 rounded-sm transition-all ${tutorialStep === 6 ? 'left-1/2 -ml-2.5' : 'right-6'}`}></div>
 
                     {/* Tutorial Card */}
                     <div className="relative bg-white dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800 flex flex-col overflow-hidden">
