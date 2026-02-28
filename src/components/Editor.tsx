@@ -1138,14 +1138,14 @@ export default function Editor() {
                 </div>
             )}
 
-            {/* Interactive Onboarding Tutorial Map */}
+            {/* Interactive Onboarding Tutorial Map (Floating Speech Bubble) */}
             {showTutorial && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-                    {/* Dark Backdrop */}
-                    <div className="absolute inset-0 bg-black/60 pointer-events-none transition-opacity"></div>
+                <div className="fixed bottom-24 right-4 sm:right-8 z-[200] w-[calc(100vw-32px)] sm:w-80 md:w-96 drop-shadow-2xl animate-in slide-in-from-bottom-5 fade-in duration-300 pointer-events-auto">
+                    {/* Speech Bubble Tail */}
+                    <div className="absolute -bottom-2 right-6 w-5 h-5 bg-white dark:bg-zinc-900 rotate-45 border-r border-b border-gray-100 dark:border-zinc-800 rounded-sm"></div>
 
                     {/* Tutorial Card */}
-                    <div className="relative bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                    <div className="relative bg-white dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800 flex flex-col overflow-hidden">
                         {/* Progress Bar */}
                         <div className="flex h-1.5 bg-gray-100 dark:bg-zinc-800">
                             <div
@@ -1154,25 +1154,25 @@ export default function Editor() {
                             ></div>
                         </div>
 
-                        <div className="p-6 md:p-8 flex flex-col gap-4">
-                            <div className="flex justify-between items-start gap-4">
-                                <h3 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white leading-tight">
+                        <div className="p-4 md:p-5 flex flex-col gap-3">
+                            <div className="flex justify-between items-start gap-3">
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">
                                     {TUTORIAL_STEPS[tutorialStep].title}
                                 </h3>
-                                <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-bold text-xs px-2.5 py-1 rounded-full whitespace-nowrap">
+                                <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-bold text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap shrink-0">
                                     {tutorialStep + 1} / {TUTORIAL_STEPS.length}
                                 </div>
                             </div>
 
-                            <div className="text-gray-700 dark:text-gray-300 leading-relaxed min-h-[120px]">
+                            <div className="text-gray-700 dark:text-gray-300 leading-relaxed text-sm min-h-[90px]">
                                 {TUTORIAL_STEPS[tutorialStep].desc}
                             </div>
                         </div>
 
-                        <div className="p-4 md:px-8 bg-gray-50 dark:bg-zinc-800/50 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between">
+                        <div className="px-4 py-3 bg-gray-50 dark:bg-zinc-800/50 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between">
                             <button
                                 onClick={handleCloseTutorial}
-                                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 font-medium text-sm px-2 py-1 transition-colors"
+                                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 font-medium text-xs px-2 py-1 transition-colors"
                             >
                                 건너뛰기
                             </button>
@@ -1181,14 +1181,14 @@ export default function Editor() {
                                 {tutorialStep > 0 && (
                                     <button
                                         onClick={() => setTutorialStep(s => s - 1)}
-                                        className="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors shadow-sm"
+                                        className="px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-md hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors shadow-sm"
                                     >
                                         이전
                                     </button>
                                 )}
                                 <button
                                     onClick={handleNextTutorial}
-                                    className="px-6 py-2 text-sm font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-all shadow-md hover:shadow-lg active:scale-95"
+                                    className="px-4 py-1.5 text-xs font-bold text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-all shadow-md hover:shadow-lg active:scale-95"
                                 >
                                     {tutorialStep === TUTORIAL_STEPS.length - 1 ? '시작하기!' : '다음 단계'}
                                 </button>
