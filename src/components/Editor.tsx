@@ -1101,9 +1101,16 @@ export default function Editor() {
                                 </ul>
                             </section>
 
-                            <div className="pt-6 pb-2 text-center text-gray-500 dark:text-gray-400 text-xs sm:text-sm font-medium italic border-t border-gray-100 dark:border-zinc-800 break-keep">
-                                누가 이걸 만들었을까 궁금하신가요? 바로 <strong className="text-indigo-500 dark:text-indigo-400">Antigravity</strong> 입니다!<br className="hidden sm:block" />
-                                <span className="text-gray-600 dark:text-gray-300">그의 노예는 <strong className="bg-gray-100 dark:bg-zinc-800 px-1 py-0.5 rounded">WHO</strong>?</span>
+                            <div className="text-[11px] text-gray-500 dark:text-gray-400 mt-8 pt-4 border-t border-gray-100 dark:border-zinc-800 leading-relaxed">
+                                한글로 Final Draft 를 사용 불가능한 사람들을 위해... 대한민국에 맞는 시나리오 에디터를 만들었습니다.<br />
+                                버전 v.1.0<br />
+                                문의/건의 사항 jungw02@naver.com<br />
+                                여러분의 소중한 말 한마디가 여러분을 편하게 해드릴 수 있습니다.
+                            </div>
+
+                            <div className="mt-[150vh] pb-4 text-center text-gray-400 dark:text-gray-500 text-[10px] sm:text-xs font-medium italic break-keep opacity-30 hover:opacity-100 transition-opacity duration-500">
+                                누가 이걸 만들었을까 궁금하신가요? 바로 <strong className="text-indigo-400 dark:text-indigo-500">Antigravity</strong> 입니다!<br className="hidden sm:block" />
+                                <span className="text-gray-500 dark:text-gray-400">그의 노예는 <strong className="bg-gray-100 dark:bg-zinc-800 px-1 py-0.5 rounded text-gray-600 dark:text-gray-300">WHO</strong>?</span>
                             </div>
                         </div>
 
