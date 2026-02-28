@@ -1,5 +1,6 @@
 import { Node, mergeAttributes, InputRule } from '@tiptap/core'
 import { ReactNodeViewRenderer } from '@tiptap/react'
+import { TextSelection } from '@tiptap/pm/state'
 
 export type ScreenplayFormat = 'scene' | 'action' | 'dialogue'
 
@@ -149,6 +150,37 @@ export const ScreenplayBlock = Node.create({
                 // "지문에서 시프트 엔터 누르면 지문 내에서 줄바꿈"
                 // "대사에서 시프트 엔터 누르면 대사 내에서 줄바꿈."
                 return this.editor.commands.setHardBreak()
+            },
+
+            '(': () => {
+                const { state, dispatch } = this.editor.view
+                if (dispatch) {
+                    const tr = state.tr.insertText('()')
+                    // Move cursor back 1 position to be inside the parenthesis
+                    const resolvedPos = tr.doc.resolve(state.selection.from - 1)
+                    tr.setSelection(TextSelection.near(resolvedPos))
+                    dispatch(tr)
+                }
+                return true
+            },
+
+            ')': () => {
+                const { state, dispatch } = this.editor.view
+                const { selection, doc } = state
+                const { $from, empty } = selection
+
+                // If there is a closing parenthesis immediately after the cursor, jump over it
+                if (empty && $from.pos < doc.content.size) {
+                    const nextChar = doc.textBetween($from.pos, $from.pos + 1)
+                    if (nextChar === ')') {
+                        if (dispatch) {
+                            const tr = state.tr.setSelection(TextSelection.near(doc.resolve($from.pos + 1)))
+                            dispatch(tr)
+                        }
+                        return true
+                    }
+                }
+                return false
             },
 
             'Mod-1': () => {
