@@ -155,10 +155,12 @@ export const ScreenplayBlock = Node.create({
             '(': () => {
                 const { state, dispatch } = this.editor.view
                 if (dispatch) {
-                    const tr = state.tr.insertText('()')
-                    // Move cursor back 1 position to be inside the parenthesis
-                    const resolvedPos = tr.doc.resolve(state.selection.from - 1)
-                    tr.setSelection(TextSelection.near(resolvedPos))
+                    const { tr, selection } = state
+                    tr.insertText('()')
+                    // insertText advances the selection by the length of the string (2).
+                    // We need to move the cursor back 1 position to be inside the parenthesis.
+                    const insidePos = selection.from + 1
+                    tr.setSelection(TextSelection.create(tr.doc, insidePos))
                     dispatch(tr)
                 }
                 return true
