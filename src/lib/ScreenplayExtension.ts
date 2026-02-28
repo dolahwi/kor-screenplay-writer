@@ -185,6 +185,28 @@ export const ScreenplayBlock = Node.create({
                 return false
             },
 
+            'Space': () => {
+                const { state, dispatch } = this.editor.view
+                const { selection, doc } = state
+                const { $from, empty } = selection
+
+                // If there is a closing parenthesis immediately after the cursor, jump over it and add a space
+                if (empty && $from.pos < doc.content.size) {
+                    const nextChar = doc.textBetween($from.pos, $from.pos + 1)
+                    if (nextChar === ')') {
+                        if (dispatch) {
+                            // Jump over the ')'
+                            let tr = state.tr.setSelection(TextSelection.near(doc.resolve($from.pos + 1)))
+                            // Insert a space after it
+                            tr = tr.insertText(' ')
+                            dispatch(tr)
+                        }
+                        return true
+                    }
+                }
+                return false
+            },
+
             'Mod-1': () => {
                 return this.editor.commands.updateAttributes(this.name, { format: 'scene' })
             },
