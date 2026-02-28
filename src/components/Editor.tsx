@@ -274,7 +274,14 @@ export default function Editor() {
             acSuppressedRef.current = false
             promptSuppressedRef.current = false
             const acActive = checkAutoComplete(editor)
-            if (!acActive) checkScenePrompt(editor)
+            if (acActive) {
+                if (promptActiveRef.current) {
+                    promptActiveRef.current = false
+                    setScenePrompt({ active: false })
+                }
+            } else {
+                checkScenePrompt(editor)
+            }
         },
         onSelectionUpdate: ({ editor }) => {
             // When selection changes, determine active format
@@ -284,7 +291,14 @@ export default function Editor() {
                 setCurrentFormat(node.attrs.format as ScreenplayFormat)
             }
             const acActive = checkAutoComplete(editor)
-            if (!acActive) checkScenePrompt(editor)
+            if (acActive) {
+                if (promptActiveRef.current) {
+                    promptActiveRef.current = false
+                    setScenePrompt({ active: false })
+                }
+            } else {
+                checkScenePrompt(editor)
+            }
         },
         editorProps: {
             handleKeyDown: (view, event) => {
@@ -319,6 +333,61 @@ export default function Editor() {
                         promptSuppressedRef.current = true
                         promptActiveRef.current = false
                         setScenePrompt({ active: false })
+                        return true
+                    }
+                }
+
+                if (acActiveRef.current) {
+                    if (event.code === 'Space' || event.key === ' ' || event.key === 'Spacebar') {
+                        event.preventDefault()
+                        const nextIdx = (acIndexRef.current + 1) % acItemsRef.current.length
+                        acIndexRef.current = nextIdx
+                        setAutoComplete(prev => prev.active ? { ...prev, index: nextIdx } : prev)
+                        return true
+                    }
+                    if (event.key === 'ArrowDown') {
+                        event.preventDefault()
+                        const nextIdx = (acIndexRef.current + 1) % acItemsRef.current.length
+                        acIndexRef.current = nextIdx
+                        setAutoComplete(prev => prev.active ? { ...prev, index: nextIdx } : prev)
+                        return true
+                    }
+                    if (event.key === 'ArrowUp') {
+                        event.preventDefault()
+                        const nextIdx = (acIndexRef.current - 1 + acItemsRef.current.length) % acItemsRef.current.length
+                        acIndexRef.current = nextIdx
+                        setAutoComplete(prev => prev.active ? { ...prev, index: nextIdx } : prev)
+                        return true
+                    }
+                    if (event.key === 'Enter') {
+                        event.preventDefault()
+                        const option = acItemsRef.current[acIndexRef.current]
+
+                        const st = view.state
+                        const fromPos = st.selection.$from
+                        const currentText = fromPos.parent.textContent
+                        let newText = ''
+
+                        if (fromPos.parent.attrs.format === 'scene') {
+                            const m = currentText.match(/^(S#\s\d+\.\s*)/)
+                            newText = (m ? m[1] : 'S# 1. ') + option
+                        } else {
+                            const m = currentText.match(/^(\s*)/)
+                            newText = (m ? m[1] : '') + option
+                        }
+
+                        const tr = st.tr.delete(fromPos.start(), fromPos.pos).insertText(newText)
+                        view.dispatch(tr.scrollIntoView())
+
+                        acActiveRef.current = false
+                        setAutoComplete({ active: false })
+                        return true
+                    }
+                    if (event.key === 'Escape') {
+                        event.preventDefault()
+                        acSuppressedRef.current = true
+                        acActiveRef.current = false
+                        setAutoComplete({ active: false })
                         return true
                     }
                 }
@@ -382,60 +451,7 @@ export default function Editor() {
                     }
                 }
 
-                if (acActiveRef.current) {
-                    if (event.code === 'Space' || event.key === ' ' || event.key === 'Spacebar') {
-                        event.preventDefault()
-                        const nextIdx = (acIndexRef.current + 1) % acItemsRef.current.length
-                        acIndexRef.current = nextIdx
-                        setAutoComplete(prev => prev.active ? { ...prev, index: nextIdx } : prev)
-                        return true
-                    }
-                    if (event.key === 'ArrowDown') {
-                        event.preventDefault()
-                        const nextIdx = (acIndexRef.current + 1) % acItemsRef.current.length
-                        acIndexRef.current = nextIdx
-                        setAutoComplete(prev => prev.active ? { ...prev, index: nextIdx } : prev)
-                        return true
-                    }
-                    if (event.key === 'ArrowUp') {
-                        event.preventDefault()
-                        const nextIdx = (acIndexRef.current - 1 + acItemsRef.current.length) % acItemsRef.current.length
-                        acIndexRef.current = nextIdx
-                        setAutoComplete(prev => prev.active ? { ...prev, index: nextIdx } : prev)
-                        return true
-                    }
-                    if (event.key === 'Enter') {
-                        event.preventDefault()
-                        const option = acItemsRef.current[acIndexRef.current]
 
-                        const st = view.state
-                        const fromPos = st.selection.$from
-                        const currentText = fromPos.parent.textContent
-                        let newText = ''
-
-                        if (fromPos.parent.attrs.format === 'scene') {
-                            const m = currentText.match(/^(S#\s\d+\.\s*)/)
-                            newText = (m ? m[1] : 'S# 1. ') + option
-                        } else {
-                            const m = currentText.match(/^(\s*)/)
-                            newText = (m ? m[1] : '') + option
-                        }
-
-                        const tr = st.tr.delete(fromPos.start(), fromPos.pos).insertText(newText)
-                        view.dispatch(tr.scrollIntoView())
-
-                        acActiveRef.current = false
-                        setAutoComplete({ active: false })
-                        return true
-                    }
-                    if (event.key === 'Escape') {
-                        event.preventDefault()
-                        acSuppressedRef.current = true
-                        acActiveRef.current = false
-                        setAutoComplete({ active: false })
-                        return true
-                    }
-                }
                 if (event.key === 'Tab') {
                     // Force prevent the browser from moving focus to the toolbar (outside editor)
                     event.preventDefault()
