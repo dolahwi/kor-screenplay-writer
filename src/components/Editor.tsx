@@ -324,7 +324,7 @@ export default function Editor() {
                 }
 
                 if (promptActiveRef.current) {
-                    if (event.key === ' ' || event.key === 'Spacebar') {
+                    if (event.code === 'Space' || event.key === ' ' || event.key === 'Spacebar') {
                         event.preventDefault()
                         const nextIdx = (promptIndexRef.current + 1) % promptItemsRef.current.length
                         promptIndexRef.current = nextIdx
@@ -383,7 +383,7 @@ export default function Editor() {
                 }
 
                 if (acActiveRef.current) {
-                    if (event.key === ' ' || event.key === 'Spacebar') {
+                    if (event.code === 'Space' || event.key === ' ' || event.key === 'Spacebar') {
                         event.preventDefault()
                         const nextIdx = (acIndexRef.current + 1) % acItemsRef.current.length
                         acIndexRef.current = nextIdx
