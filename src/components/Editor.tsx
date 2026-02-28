@@ -123,6 +123,7 @@ export default function Editor() {
 
     // Global suppression for prompt/autocomplete after selection via Enter
     const insertSuppressionRef = useRef(false)
+    const backspaceSuppressionRef = useRef(false)
 
     const checkScenePrompt = (editor: any): boolean => {
         if (insertSuppressionRef.current) {
@@ -340,6 +341,10 @@ export default function Editor() {
                 acSuppressedRef.current = true
                 promptSuppressedRef.current = true
                 insertSuppressionRef.current = false
+            } else if (backspaceSuppressionRef.current) {
+                acSuppressedRef.current = true
+                promptSuppressedRef.current = true
+                backspaceSuppressionRef.current = false
             } else {
                 acSuppressedRef.current = false
                 promptSuppressedRef.current = false
@@ -375,38 +380,17 @@ export default function Editor() {
         editorProps: {
             handleKeyDown: (view, event) => {
                 if (event.key === 'Backspace') {
+                    backspaceSuppressionRef.current = true
+
                     if (acActiveRef.current) {
-                        event.preventDefault()
                         acSuppressedRef.current = true
                         acActiveRef.current = false
                         setAutoComplete({ active: false })
-
-                        // Open scene prompt fallback
-                        const { state } = view
-                        const node = state.selection.$from.parent
-                        if (node.type.name === 'screenplayBlock' && node.attrs.format === 'scene') {
-                            const currentText = node.textContent.slice(0, state.selection.$from.parentOffset)
-                            const { promptType, matches, search } = getScenePromptMatches(currentText)
-                            if (promptType && matches.length > 0) {
-                                promptActiveRef.current = true
-                                promptTypeRef.current = promptType
-                                promptItemsRef.current = matches
-                                promptSearchRef.current = search
-                                promptIndexRef.current = 0
-                                promptSuppressedRef.current = false
-                                try {
-                                    const coords = view.coordsAtPos(state.selection.from)
-                                    setScenePrompt({ active: true, type: promptType, top: coords.bottom + window.scrollY, left: coords.left + window.scrollX, items: matches, index: 0 })
-                                } catch (e) { }
-                            }
-                        }
-                        return true
-                    } else if (promptActiveRef.current) {
-                        event.preventDefault()
+                    }
+                    if (promptActiveRef.current) {
                         promptSuppressedRef.current = true
                         promptActiveRef.current = false
                         setScenePrompt({ active: false })
-                        return true
                     }
 
                     // Custom Bulk Delete for Scene Attributes
@@ -424,9 +408,6 @@ export default function Editor() {
                                     event.preventDefault()
                                     const tr = state.tr.delete($from.pos - word.length, $from.pos)
                                     view.dispatch(tr.scrollIntoView())
-
-                                    // Reset suppression so menus can potentially pop up again after deleting
-                                    insertSuppressionRef.current = false
                                     return true
                                 }
                             }
