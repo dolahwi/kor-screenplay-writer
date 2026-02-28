@@ -13,6 +13,8 @@ const FORMAT_LABELS: Record<ScreenplayFormat, string> = {
     dialogue: '대사 ⌘3',
 }
 
+const CURRENT_APP_VERSION = "v1.1"
+
 const TUTORIAL_STEPS = [
     {
         title: "1. 씬(Scene) 작성하기",
@@ -164,6 +166,7 @@ export default function Editor() {
     const [isSansFont, setIsSansFont] = useState(false)
     const [showTutorial, setShowTutorial] = useState(false)
     const [tutorialStep, setTutorialStep] = useState(0)
+    const [showUpdatePopup, setShowUpdatePopup] = useState(false)
 
     // Title Page State
     const [titlePage, setTitlePage] = useState<TitlePageData>({ title: '', author: '', contact: '' })
@@ -201,11 +204,20 @@ export default function Editor() {
         }
     }, [isSansFont])
 
-    // Tutorial Init Check
+    // Tutorial & Version Init Check
     useEffect(() => {
         const hasSeenTutorial = localStorage.getItem('hasSeenKorScreenplayTutorial')
         if (!hasSeenTutorial) {
             setShowTutorial(true)
+        }
+
+        const savedVersion = localStorage.getItem('korScreenplayVersion')
+        if (savedVersion !== CURRENT_APP_VERSION) {
+            // If they have seen the tutorial before, and version is new, show update popup
+            if (hasSeenTutorial) {
+                setShowUpdatePopup(true)
+            }
+            localStorage.setItem('korScreenplayVersion', CURRENT_APP_VERSION)
         }
     }, [])
 
@@ -1103,7 +1115,7 @@ export default function Editor() {
 
                             <div className="text-[11px] text-gray-500 dark:text-gray-400 mt-8 pt-4 border-t border-gray-100 dark:border-zinc-800 leading-relaxed">
                                 한글로 Final Draft 를 사용 불가능한 사람들을 위해... 대한민국에 맞는 시나리오 에디터를 만들었습니다.<br />
-                                버전 v.1.0<br />
+                                버전 v.1.1<br />
                                 문의/건의 사항 <a href="mailto:jungw02@naver.com" className="text-blue-500 hover:text-blue-600 underline underline-offset-2">jungw02@naver.com</a><br />
                                 여러분의 소중한 말 한마디가 여러분을 편하게 해드릴 수 있습니다.
                             </div>
@@ -1130,6 +1142,48 @@ export default function Editor() {
                                 className="bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-gray-800 dark:text-gray-200 font-bold py-2 px-8 rounded-md transition-colors shadow-sm"
                             >
                                 닫기
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Version Update Popup */}
+            {showUpdatePopup && (
+                <div className="fixed inset-0 bg-black/50 z-[250] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl w-full max-w-sm flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                        {/* Header */}
+                        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-center">
+                            <h2 className="text-2xl font-black text-white mb-2">업데이트 알림 🚀</h2>
+                            <p className="text-blue-100 font-medium">버전이 {CURRENT_APP_VERSION} 로 변경되었습니다!</p>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-6 bg-white dark:bg-zinc-900">
+                            <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-3 text-sm">✨ 새로운 기능 및 변경 사항</h3>
+                            <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                                <li className="flex gap-2">
+                                    <span className="text-blue-500">✓</span>
+                                    <span>대사 작성 시 <strong>간격 예시</strong> 수정 및 가독성 개선</span>
+                                </li>
+                                <li className="flex gap-2">
+                                    <span className="text-blue-500">✓</span>
+                                    <span>설명서 하단 연락처 <strong>이메일 자동 열기</strong> 링크 적용</span>
+                                </li>
+                                <li className="flex gap-2">
+                                    <span className="text-blue-500">✓</span>
+                                    <span>개발자 크레딧(Antigravity) <strong>이스터 에그</strong> 스크롤 추가</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-4 bg-gray-50 dark:bg-zinc-800/50 border-t border-gray-100 dark:border-zinc-800 flex justify-center">
+                            <button
+                                onClick={() => setShowUpdatePopup(false)}
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-lg transition-colors shadow-sm"
+                            >
+                                확인하고 시작하기
                             </button>
                         </div>
                     </div>
