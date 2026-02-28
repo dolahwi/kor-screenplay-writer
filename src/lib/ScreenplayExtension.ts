@@ -40,42 +40,46 @@ export const ScreenplayBlock = Node.create({
     addKeyboardShortcuts() {
         return {
             Tab: () => {
-                const { state, dispatch } = this.editor.view
-                const { selection } = state
-                const { $from, empty } = selection
+                const doTab = () => {
+                    const { state, dispatch } = this.editor.view
+                    const { selection } = state
+                    const { $from, empty } = selection
 
-                // Korean IME Fix
+                    const node = $from.parent
+                    if (node.type.name !== this.name) {
+                        if (dispatch) {
+                            const tr = state.tr.setNodeMarkup($from.before(), this.type, { format: 'scene' })
+                            dispatch(tr.scrollIntoView())
+                        }
+                        return
+                    }
+
+                    if (empty && $from.parentOffset === 0) {
+                        const currentFormat = node.attrs.format as ScreenplayFormat
+                        const currentIndex = FORMATS.indexOf(currentFormat)
+                        const nextIndex = (currentIndex + 1) % FORMATS.length
+                        const nextFormat = FORMATS[nextIndex]
+
+                        if (dispatch) {
+                            const tr = state.tr.setNodeMarkup($from.before(), undefined, { format: nextFormat })
+                            dispatch(tr.scrollIntoView())
+                        }
+                        return
+                    }
+
+                    if (dispatch) {
+                        const tr = state.tr.insertText('\t')
+                        dispatch(tr.scrollIntoView())
+                    }
+                }
+
+                // Korean IME Fix: Defer DOM mutation to prevent character duplication
                 if (this.editor.view.composing) {
-                    this.editor.view.dom.blur()
-                    this.editor.view.dom.focus()
-                }
-
-                const node = $from.parent
-                if (node.type.name !== this.name) {
-                    if (dispatch) {
-                        const tr = state.tr.setNodeMarkup($from.before(), this.type, { format: 'scene' })
-                        dispatch(tr)
-                    }
+                    setTimeout(doTab, 20)
                     return true
                 }
 
-                if (empty && $from.parentOffset === 0) {
-                    const currentFormat = node.attrs.format as ScreenplayFormat
-                    const currentIndex = FORMATS.indexOf(currentFormat)
-                    const nextIndex = (currentIndex + 1) % FORMATS.length
-                    const nextFormat = FORMATS[nextIndex]
-
-                    if (dispatch) {
-                        const tr = state.tr.setNodeMarkup($from.before(), undefined, { format: nextFormat })
-                        dispatch(tr)
-                    }
-                    return true
-                }
-
-                if (dispatch) {
-                    const tr = state.tr.insertText('\t')
-                    dispatch(tr)
-                }
+                doTab()
                 return true
             },
 
