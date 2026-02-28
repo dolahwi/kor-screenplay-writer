@@ -30,6 +30,34 @@ const getChoseong = (str: string) => {
     return result;
 }
 
+const getScenePromptMatches = (text: string) => {
+    let promptType: 'location' | 'time' | null = null
+    let search = ''
+
+    const locMatch = text.match(/^S#\s\d+\.\s*(.*?)$/)
+    const timeMatch = text.match(/^S#\s\d+\.\s+(내부|외부|내부\/외부|외부\/내부)\s*-\s*(.*?)$/)
+
+    if (timeMatch && !timeMatch[2].includes('-')) {
+        promptType = 'time'
+        search = timeMatch[2].trim()
+    } else if (locMatch && !locMatch[1].includes('-')) {
+        promptType = 'location'
+        search = locMatch[1].trim()
+    }
+
+    if (!promptType) return { promptType: null, matches: [], search: '' }
+
+    const currentList = promptType === 'location' ? SCENE_OPTIONS : TIME_OPTIONS
+    const searchChoseong = getChoseong(search)
+
+    // Always include exact or Choseong matches, fallback to full list if no search query.
+    const matches = search ? currentList.filter(o =>
+        o.startsWith(search) || getChoseong(o).startsWith(searchChoseong)
+    ) : currentList
+
+    return { promptType, matches, search }
+}
+
 interface TitlePageData {
     title: string;
     author: string;
@@ -78,52 +106,30 @@ export default function Editor() {
         const node = $from.parent
 
         if (node.type.name === 'screenplayBlock' && node.attrs.format === 'scene') {
-            const text = node.textContent
-            let promptType: 'location' | 'time' | null = null
-            let search = ''
+            const { promptType, matches, search } = getScenePromptMatches(node.textContent)
 
-            const locMatch = text.match(/^S#\s\d+\.\s*(.*?)$/)
-            const timeMatch = text.match(/^S#\s\d+\.\s+(내부|외부|내부\/외부|외부\/내부)\s*-\s*(.*?)$/)
+            if (promptType && matches.length > 0) {
+                try {
+                    const coords = view.coordsAtPos(state.selection.from)
+                    promptActiveRef.current = true
+                    promptTypeRef.current = promptType
+                    promptItemsRef.current = matches
+                    promptSearchRef.current = search
 
-            if (timeMatch && !timeMatch[2].includes('-')) {
-                promptType = 'time'
-                search = timeMatch[2].trim()
-            } else if (locMatch && !locMatch[1].includes('-')) {
-                promptType = 'location'
-                search = locMatch[1].trim()
-            }
+                    if (promptIndexRef.current >= matches.length) promptIndexRef.current = 0
 
-            if (promptType) {
-                const currentList = promptType === 'location' ? SCENE_OPTIONS : TIME_OPTIONS
-                const searchChoseong = getChoseong(search)
-
-                const matches = search ? currentList.filter(o =>
-                    o.startsWith(search) || getChoseong(o).startsWith(searchChoseong)
-                ) : currentList
-
-                if (matches.length > 0) {
-                    try {
-                        const coords = view.coordsAtPos(state.selection.from)
-                        promptActiveRef.current = true
-                        promptTypeRef.current = promptType
-                        promptItemsRef.current = matches
-                        promptSearchRef.current = search
-
-                        if (promptIndexRef.current >= matches.length) promptIndexRef.current = 0
-
-                        setScenePrompt({
-                            active: true,
-                            type: promptType,
-                            top: coords.bottom + window.scrollY,
-                            left: coords.left + window.scrollX,
-                            items: matches,
-                            index: promptIndexRef.current
-                        })
-                    } catch (e) {
-                        // Ignore transient coordinate errors
-                    }
-                    return true
+                    setScenePrompt({
+                        active: true,
+                        type: promptType,
+                        top: coords.bottom + window.scrollY,
+                        left: coords.left + window.scrollX,
+                        items: matches,
+                        index: promptIndexRef.current
+                    })
+                } catch (e) {
+                    // Ignore transient coordinate errors
                 }
+                return true
             }
         }
 
@@ -293,18 +299,19 @@ export default function Editor() {
                         const { state } = view
                         const node = state.selection.$from.parent
                         if (node.type.name === 'screenplayBlock' && node.attrs.format === 'scene') {
-                            const text = node.textContent
-                            let promptType: 'location' | 'time' = text.includes('-') ? 'time' : 'location'
-                            promptActiveRef.current = true
-                            promptTypeRef.current = promptType
-                            promptIndexRef.current = 0
-                            promptSuppressedRef.current = false
-                            try {
-                                const coords = view.coordsAtPos(state.selection.from)
-                                // Fetch items again for toggle continuity
-                                const currentList = promptType === 'location' ? SCENE_OPTIONS : TIME_OPTIONS
-                                setScenePrompt({ active: true, type: promptType, top: coords.bottom + window.scrollY, left: coords.left + window.scrollX, items: currentList, index: 0 })
-                            } catch (e) { }
+                            const { promptType, matches, search } = getScenePromptMatches(node.textContent)
+                            if (promptType && matches.length > 0) {
+                                promptActiveRef.current = true
+                                promptTypeRef.current = promptType
+                                promptItemsRef.current = matches
+                                promptSearchRef.current = search
+                                promptIndexRef.current = 0
+                                promptSuppressedRef.current = false
+                                try {
+                                    const coords = view.coordsAtPos(state.selection.from)
+                                    setScenePrompt({ active: true, type: promptType, top: coords.bottom + window.scrollY, left: coords.left + window.scrollX, items: matches, index: 0 })
+                                } catch (e) { }
+                            }
                         }
                         return true
                     } else if (promptActiveRef.current) {
@@ -342,31 +349,29 @@ export default function Editor() {
                         event.preventDefault()
                         const option = promptItemsRef.current[promptIndexRef.current]
 
-                        if (view.composing) {
-                            view.dom.blur()
-                            view.dom.focus()
+                        let insertStr = option
+                        if (promptTypeRef.current === 'location') {
+                            insertStr += ' - '
                         }
 
-                        setTimeout(() => {
-                            const st = view.state
-                            const fromPos = st.selection.$from
-                            const currentText = fromPos.parent.textContent
-                            let newText = ''
+                        const st = view.state
+                        const fromPos = st.selection.$from
+                        const currentText = fromPos.parent.textContent
+                        let newText = ''
 
-                            if (promptTypeRef.current === 'location') {
-                                const m = currentText.match(/^(S#\s\d+\.\s+)/)
-                                newText = (m ? m[1] : 'S# 1. ') + option + ' - '
-                            } else {
-                                const m = currentText.match(/^(S#\s\d+\.\s+(?:내부|외부|내부\/외부|외부\/내부)\s*-\s*)/)
-                                newText = (m ? m[1] : 'S# 1. 외부 - ') + option
-                            }
+                        if (promptTypeRef.current === 'location') {
+                            const m = currentText.match(/^(S#\s\d+\.\s*)/)
+                            newText = (m ? m[1] : 'S# 1. ') + insertStr
+                        } else {
+                            const m = currentText.match(/^(S#\s\d+\.\s+(?:내부|외부|내부\/외부|외부\/내부)\s*-\s*)/)
+                            newText = (m ? m[1] : 'S# 1. 외부 - ') + insertStr
+                        }
 
-                            const tr = st.tr.delete(fromPos.start(), fromPos.pos).insertText(newText)
-                            view.dispatch(tr.scrollIntoView())
+                        const tr = st.tr.delete(fromPos.start(), fromPos.pos).insertText(newText)
+                        view.dispatch(tr.scrollIntoView())
 
-                            promptActiveRef.current = false
-                            setScenePrompt({ active: false })
-                        }, 0)
+                        promptActiveRef.current = false
+                        setScenePrompt({ active: false })
                         return true
                     }
                     if (event.key === 'Escape') {
@@ -403,30 +408,24 @@ export default function Editor() {
                         event.preventDefault()
                         const option = acItemsRef.current[acIndexRef.current]
 
-                        if (view.composing) {
-                            view.dom.blur()
-                            view.dom.focus()
+                        const st = view.state
+                        const fromPos = st.selection.$from
+                        const currentText = fromPos.parent.textContent
+                        let newText = ''
+
+                        if (fromPos.parent.attrs.format === 'scene') {
+                            const m = currentText.match(/^(S#\s\d+\.\s*)/)
+                            newText = (m ? m[1] : 'S# 1. ') + option
+                        } else {
+                            const m = currentText.match(/^(\s*)/)
+                            newText = (m ? m[1] : '') + option
                         }
 
-                        setTimeout(() => {
-                            const st = view.state
-                            const fromPos = st.selection.$from
-                            const currentText = fromPos.parent.textContent
-                            let newText = ''
+                        const tr = st.tr.delete(fromPos.start(), fromPos.pos).insertText(newText)
+                        view.dispatch(tr.scrollIntoView())
 
-                            if (fromPos.parent.attrs.format === 'scene') {
-                                const m = currentText.match(/^(S#\s\d+\.\s+)/)
-                                newText = (m ? m[1] : 'S# 1. ') + option
-                            } else {
-                                newText = option
-                            }
-
-                            const tr = st.tr.delete(fromPos.start(), fromPos.pos).insertText(newText)
-                            view.dispatch(tr.scrollIntoView())
-
-                            acActiveRef.current = false
-                            setAutoComplete({ active: false })
-                        }, 0)
+                        acActiveRef.current = false
+                        setAutoComplete({ active: false })
                         return true
                     }
                     if (event.key === 'Escape') {
