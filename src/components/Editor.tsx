@@ -412,6 +412,27 @@ export default function Editor() {
                                 }
                             }
                         }
+
+                        // Check for spacing/hyphen blocks or arbitrary words
+                        if (textBeforeCursor.endsWith(' - ')) {
+                            event.preventDefault()
+                            const tr = state.tr.delete($from.pos - 3, $from.pos)
+                            view.dispatch(tr.scrollIntoView())
+                            return true
+                        } else if (textBeforeCursor.match(/\s+([^\s]+)$/)) {
+                            // Delete the last full word
+                            const match = textBeforeCursor.match(/\s+([^\s]+)$/)
+                            if (match && match[1]) {
+                                // Only do this if we are past the "S# 1. " part
+                                const prefixMatch = textBeforeCursor.match(/^(S#\s\d+\.\s*)/)
+                                if (prefixMatch && textBeforeCursor.length - match[1].length >= prefixMatch[1].length) {
+                                    event.preventDefault()
+                                    const tr = state.tr.delete($from.pos - match[1].length, $from.pos)
+                                    view.dispatch(tr.scrollIntoView())
+                                    return true
+                                }
+                            }
+                        }
                     }
                 }
 
