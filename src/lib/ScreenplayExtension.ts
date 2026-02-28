@@ -40,46 +40,48 @@ export const ScreenplayBlock = Node.create({
     addKeyboardShortcuts() {
         return {
             Tab: () => {
-                const doTab = () => {
-                    const { state, dispatch } = this.editor.view
-                    const { selection } = state
-                    const { $from, empty } = selection
+                const { state, dispatch } = this.editor.view
+                const { selection } = state
+                const { $from, empty } = selection
 
-                    const node = $from.parent
-                    if (node.type.name !== this.name) {
-                        if (dispatch) {
-                            const tr = state.tr.setNodeMarkup($from.before(), this.type, { format: 'scene' })
-                            dispatch(tr.scrollIntoView())
-                        }
-                        return
-                    }
-
-                    if (empty && $from.parentOffset === 0) {
-                        const currentFormat = node.attrs.format as ScreenplayFormat
-                        const currentIndex = FORMATS.indexOf(currentFormat)
-                        const nextIndex = (currentIndex + 1) % FORMATS.length
-                        const nextFormat = FORMATS[nextIndex]
-
-                        if (dispatch) {
-                            const tr = state.tr.setNodeMarkup($from.before(), undefined, { format: nextFormat })
-                            dispatch(tr.scrollIntoView())
-                        }
-                        return
-                    }
-
+                const node = $from.parent
+                if (node.type.name !== this.name) {
                     if (dispatch) {
-                        const tr = state.tr.insertText('\t')
+                        const tr = state.tr.setNodeMarkup($from.before(), this.type, { format: 'scene' })
                         dispatch(tr.scrollIntoView())
                     }
-                }
-
-                // Korean IME Fix: Defer DOM mutation to prevent character duplication
-                if (this.editor.view.composing) {
-                    setTimeout(doTab, 20)
                     return true
                 }
 
-                doTab()
+                if (empty && $from.parentOffset === 0) {
+                    const currentFormat = node.attrs.format as ScreenplayFormat
+                    const currentIndex = FORMATS.indexOf(currentFormat)
+                    const nextIndex = (currentIndex + 1) % FORMATS.length
+                    const nextFormat = FORMATS[nextIndex]
+
+                    if (dispatch) {
+                        const tr = state.tr.setNodeMarkup($from.before(), undefined, { format: nextFormat })
+                        dispatch(tr.scrollIntoView())
+                    }
+                    return true
+                }
+
+                if (dispatch) {
+                    const tr = state.tr.insertText('\t')
+                    dispatch(tr.scrollIntoView())
+
+                    // Korean IME Fix: Interrupt Safari's composition tracker
+                    if (this.editor.view.composing) {
+                        setTimeout(() => {
+                            const domSelection = window.getSelection()
+                            if (domSelection && domSelection.rangeCount > 0) {
+                                const range = domSelection.getRangeAt(0)
+                                domSelection.removeAllRanges()
+                                domSelection.addRange(range)
+                            }
+                        }, 0)
+                    }
+                }
                 return true
             },
 
