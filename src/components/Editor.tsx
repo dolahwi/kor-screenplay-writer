@@ -34,7 +34,10 @@ const TUTORIAL_STEPS = [
         title: "3. 대사(Dialogue) 작성하기",
         desc: <>
             대사 항목에서 인물 이름을 적고 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Tab</kbd>을 누르면 곧바로 대사를 칠 수 있는 공간으로 건너뜁니다. <em>(아이패드 등에서는 <kbd className="bg-zinc-200 text-zinc-800 px-1 rounded">Spacebar</kbd> 누르고 <kbd className="bg-zinc-200 text-zinc-800 px-1 rounded">Tab</kbd> 권장)</em><br /><br />
-            <span className="text-gray-500">예시: 동수  (웃으며) 말하지마!</span><br /><br />
+            <div className="flex gap-8 xl:gap-12 text-gray-500 bg-gray-50 dark:bg-zinc-800/80 p-2 rounded -my-1 border border-gray-100 dark:border-zinc-700 text-sm">
+                <span>예시: 동수</span>
+                <span>(웃으며) 말하지마!</span>
+            </div><br />
             지시문(행동)은 괄호를 치고 행동을 작성 후 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Spacebar</kbd>를 두 번 연타하면 자동으로 괄호 `(행동)` 가 씌워집니다!<br />
             대사의 줄바꿈은 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Shift</kbd> + <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Enter</kbd>, 인물 변경은 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Enter</kbd>를 칩니다.
         </>
