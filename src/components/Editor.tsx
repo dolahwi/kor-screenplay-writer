@@ -34,21 +34,47 @@ const getScenePromptMatches = (text: string) => {
     let promptType: 'location' | 'time' | null = null
     let search = ''
     let rawSearch = ''
+    let baseText = '' // The text before the search query that we should keep
 
-    const locMatch = text.match(/^S#\s\d+\.\s*(.*?)$/)
-    const timeMatch = text.match(/^S#\s\d+\.\s+(내부|외부|내부\/외부|외부\/내부)\s*-\s*(.*?)$/)
+    const locMatch = text.match(/^(S#\s\d+\.\s*)(.*?)$/)
+    const timeMatch = text.match(/^(S#\s\d+\.\s+(?:내부|외부|내부\/외부|외부\/내부)\s*-\s*)(.*)$/)
 
-    if (timeMatch && !timeMatch[2].includes('-')) {
+    if (timeMatch) {
         promptType = 'time'
-        rawSearch = timeMatch[2]
-        search = rawSearch.trim()
-    } else if (locMatch && !locMatch[1].includes('-')) {
+        const prefix = timeMatch[1]
+        const locationDetailAndTime = timeMatch[2]
+
+        const secondHyphenMatch = locationDetailAndTime.match(/^(.*?\s*-\s*)(.*)$/)
+        if (secondHyphenMatch) {
+            baseText = prefix + secondHyphenMatch[1]
+            rawSearch = secondHyphenMatch[2]
+            search = rawSearch.trim()
+        } else {
+            const lastWordMatch = locationDetailAndTime.match(/^(.*?(?:^|\s+))([^\s]*)$/)
+            if (lastWordMatch) {
+                if (lastWordMatch[1] === "" && lastWordMatch[2] !== "") {
+                    baseText = prefix
+                    rawSearch = lastWordMatch[2]
+                    search = rawSearch.trim()
+                } else {
+                    baseText = prefix + lastWordMatch[1]
+                    rawSearch = lastWordMatch[2]
+                    search = rawSearch.trim()
+                }
+            } else {
+                baseText = prefix
+                rawSearch = locationDetailAndTime
+                search = rawSearch.trim()
+            }
+        }
+    } else if (locMatch && !locMatch[2].includes('-')) {
         promptType = 'location'
-        rawSearch = locMatch[1]
+        baseText = locMatch[1] // "S# 1. "
+        rawSearch = locMatch[2]
         search = rawSearch.trim()
     }
 
-    if (!promptType) return { promptType: null, matches: [], search: '', rawSearch: '' }
+    if (!promptType) return { promptType: null, matches: [], search: '', rawSearch: '', baseText: '' }
 
     const currentList = promptType === 'location' ? SCENE_OPTIONS : TIME_OPTIONS
     const searchChoseong = getChoseong(search)
@@ -58,7 +84,7 @@ const getScenePromptMatches = (text: string) => {
         o.startsWith(search) || getChoseong(o).startsWith(searchChoseong)
     ) : currentList
 
-    return { promptType, matches, search, rawSearch }
+    return { promptType, matches, search, rawSearch, baseText }
 }
 
 interface TitlePageData {
@@ -109,7 +135,8 @@ export default function Editor() {
         const node = $from.parent
 
         if (node.type.name === 'screenplayBlock' && node.attrs.format === 'scene') {
-            const { promptType, matches, search, rawSearch } = getScenePromptMatches(node.textContent)
+            const currentText = node.textContent.slice(0, $from.parentOffset)
+            const { promptType, matches, search, rawSearch } = getScenePromptMatches(currentText)
 
             if (promptType && matches.length > 0) {
                 if (promptActiveRef.current && rawSearch !== search && rawSearch.endsWith(' ')) {
@@ -177,7 +204,7 @@ export default function Editor() {
         const format = node.attrs.format
 
         if (format === 'scene') {
-            const text = node.textContent
+            const text = node.textContent.slice(0, $from.parentOffset)
             const matchFull = text.match(/^S#\s\d+\.\s+(.+)$/)
             if (matchFull) {
                 const rawSearch = matchFull[1]
@@ -348,7 +375,8 @@ export default function Editor() {
                         const { state } = view
                         const node = state.selection.$from.parent
                         if (node.type.name === 'screenplayBlock' && node.attrs.format === 'scene') {
-                            const { promptType, matches, search } = getScenePromptMatches(node.textContent)
+                            const currentText = node.textContent.slice(0, state.selection.$from.parentOffset)
+                            const { promptType, matches, search } = getScenePromptMatches(currentText)
                             if (promptType && matches.length > 0) {
                                 promptActiveRef.current = true
                                 promptTypeRef.current = promptType
@@ -453,22 +481,28 @@ export default function Editor() {
                         event.preventDefault()
                         const option = promptItemsRef.current[promptIndexRef.current]
 
-                        let insertStr = option
-                        if (promptTypeRef.current === 'location') {
-                            insertStr += ' - '
-                        }
-
                         const st = view.state
                         const fromPos = st.selection.$from
-                        const currentText = fromPos.parent.textContent
+                        const currentText = fromPos.parent.textContent.slice(0, fromPos.parentOffset)
+
+                        const { promptType, baseText } = getScenePromptMatches(currentText)
                         let newText = ''
 
-                        if (promptTypeRef.current === 'location') {
-                            const m = currentText.match(/^(S#\s\d+\.\s*)/)
-                            newText = (m ? m[1] : 'S# 1. ') + insertStr
+                        if (promptType === 'location') {
+                            newText = baseText + option + ' - '
+                        } else if (promptType === 'time') {
+                            let insertStr = option
+                            if (!baseText.match(/-\s*$/)) {
+                                if (!baseText.endsWith(' ')) {
+                                    insertStr = ' - ' + option
+                                } else {
+                                    insertStr = '- ' + option
+                                }
+                            }
+                            newText = baseText + insertStr
                         } else {
-                            const m = currentText.match(/^(S#\s\d+\.\s+(?:내부|외부|내부\/외부|외부\/내부)\s*-\s*)/)
-                            newText = (m ? m[1] : 'S# 1. 외부 - ') + insertStr
+                            // Fallback
+                            newText = currentText
                         }
 
                         const tr = st.tr.delete(fromPos.start(), fromPos.pos).insertText(newText)
