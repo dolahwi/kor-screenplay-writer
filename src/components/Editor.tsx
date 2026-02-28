@@ -18,8 +18,9 @@ const TUTORIAL_STEPS = [
         title: "1. 씬(Scene) 작성하기",
         desc: <>
             키보드로 <strong>`ㅆ`</strong> 을 치고 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Spacebar</kbd>를 누르면 즉시 <strong>씬 블록</strong>으로 자동 전환됩니다.<br /><br />
-            내부/외부 목록이 뜨고, <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Tab</kbd> or 방향키로 선택 후 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Enter</kbd>를 치면 작성됩니다.<br />
-            장소 입력 후 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Spacebar</kbd> 누르면 동일하게 시간대 선택 가능합니다.
+            내부/외부 목록이 뜨고, <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Spacebar</kbd> or 방향키로 선택 후 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Enter</kbd>를 치면 작성됩니다.<br />
+            장소 입력 후 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Spacebar</kbd> 누르면 동일하게 시간대 선택 가능합니다.<br />
+            씬 작성 후 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Enter</kbd> 누르면 자동으로 지문 작성 가능합니다.
         </>
     },
     {
@@ -32,7 +33,8 @@ const TUTORIAL_STEPS = [
     {
         title: "3. 대사(Dialogue) 작성하기",
         desc: <>
-            대사 항목에서 인물 이름을 적고 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Tab</kbd>을 누르면 곧바로 대사를 칠 수 있는 공간으로 건너뜁니다. <em>(아이패드 등에서는 <kbd className="bg-zinc-200 text-zinc-800 px-1 rounded">Spacebar</kbd> + <kbd className="bg-zinc-200 text-zinc-800 px-1 rounded">Tab</kbd> 권장)</em><br /><br />
+            대사 항목에서 인물 이름을 적고 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Tab</kbd>을 누르면 곧바로 대사를 칠 수 있는 공간으로 건너뜁니다. <em>(아이패드 등에서는 <kbd className="bg-zinc-200 text-zinc-800 px-1 rounded">Spacebar</kbd> 누르고 <kbd className="bg-zinc-200 text-zinc-800 px-1 rounded">Tab</kbd> 권장)</em><br /><br />
+            <span className="text-gray-500">예시: 동수  (웃으며) 말하지마!</span><br /><br />
             지시문(행동)은 괄호를 치고 행동을 작성 후 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Spacebar</kbd>를 두 번 연타하면 자동으로 괄호 `(행동)` 가 씌워집니다!<br />
             대사의 줄바꿈은 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Shift</kbd> + <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Enter</kbd>, 인물 변경은 <kbd className="bg-blue-100 text-blue-800 px-1 rounded">Enter</kbd>를 칩니다.
         </>
@@ -64,7 +66,8 @@ const TUTORIAL_STEPS = [
         title: "7. 내보내기 및 폰트 설정",
         desc: <>
             작업 화면 우측 하단의 <strong>[표지 편집]</strong>을 눌러 제목을 세팅하고, 상단의 <strong>[PDF 저장]</strong>을 누르면 당장 제출 가능한 형태의 완벽한 한국형 대본이 생성됩니다.<br /><br />
-            또한 안전하게 파일로 <strong>저장하기(.json)</strong>, <strong>불러오기</strong>가 언제든 가능하며, 좌측 하단 버튼으로 <strong>폰트(명조/고딕)</strong>도 마음대로 바꿀 수 있습니다.
+            또한 안전하게 파일로 <strong>저장하기(.json)</strong>, <strong>불러오기</strong>가 언제든 가능하며 (로컬 저장. 온라인 저장 불가), 좌측 하단 버튼으로 <strong>폰트(명조/고딕)</strong>도 마음대로 바꿀 수 있습니다.<br /><br />
+            <em className="text-gray-500 text-xs text-center block w-full mt-2">이 듀토리얼은 설명서 항목에서 다시 보실 수 있습니다.</em>
         </>
     }
 ]
