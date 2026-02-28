@@ -1,0 +1,423 @@
+'use client'
+
+import { useEditor, EditorContent } from '@tiptap/react'
+import StarterKit from '@tiptap/starter-kit'
+import Placeholder from '@tiptap/extension-placeholder'
+import { ScreenplayBlock, ScreenplayFormat } from '@/lib/ScreenplayExtension'
+import { generateAndDownloadPDF } from '@/lib/pdfGenerator'
+import { useEffect, useState, useRef } from 'react'
+
+const FORMAT_LABELS: Record<ScreenplayFormat, string> = {
+    scene: '씬(S#)',
+    action: '지문',
+    dialogue: '대사',
+}
+
+const SCENE_OPTIONS = ['내부', '외부', '내부/외부', '외부/내부']
+const TIME_OPTIONS = ['아침', '낮', '저녁', '밤', '새벽']
+
+interface TitlePageData {
+    title: string;
+    author: string;
+    contact: string;
+}
+
+export default function Editor() {
+    const [currentFormat, setCurrentFormat] = useState<ScreenplayFormat>('action')
+    const [isImeComposing, setIsImeComposing] = useState(false)
+    const [fileHandle, setFileHandle] = useState<any>(null)
+
+    // Title Page State
+    const [titlePage, setTitlePage] = useState<TitlePageData>({ title: '', author: '', contact: '' })
+    const [isTitleModalOpen, setIsTitleModalOpen] = useState(false)
+    const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
+
+    // Scene Prompt State
+    const promptActiveRef = useRef(false)
+    const promptTypeRef = useRef<'location' | 'time'>('location')
+    const promptIndexRef = useRef(0)
+    const [scenePrompt, setScenePrompt] = useState({ active: false, type: 'location', top: 0, left: 0 })
+    const [promptIndex, setPromptIndex] = useState(0)
+
+    const checkScenePrompt = (editor: any) => {
+        const { state, view } = editor
+        const { $from } = state.selection
+        const node = $from.parent
+
+        if (node.type.name === 'screenplayBlock' && node.attrs.format === 'scene') {
+            const text = node.textContent
+            let promptType: 'location' | 'time' | null = null
+
+            if (/^S#\s\d+\.\s*$/.test(text)) {
+                promptType = 'location'
+            } else if (/^S#\s\d+\.\s+(내부|외부|내부\/외부|외부\/내부)\s*-\s+.*?(?:\s*-\s*)$/.test(text)) {
+                promptType = 'time'
+            }
+
+            if (promptType) {
+                try {
+                    const coords = view.coordsAtPos(state.selection.from)
+                    if (!promptActiveRef.current || promptTypeRef.current !== promptType) {
+                        promptActiveRef.current = true
+                        promptTypeRef.current = promptType
+                        promptIndexRef.current = 0
+                        setPromptIndex(0)
+                        setScenePrompt({ active: true, type: promptType, top: coords.bottom + window.scrollY, left: coords.left + window.scrollX })
+                    } else {
+                        setScenePrompt(prev => ({ ...prev, top: coords.bottom + window.scrollY, left: coords.left + window.scrollX }))
+                    }
+                    return
+                } catch (e) {
+                    // Ignore transient coordinate errors
+                }
+            }
+        }
+
+        if (promptActiveRef.current) {
+            promptActiveRef.current = false
+            setScenePrompt({ active: false, type: 'location', top: 0, left: 0 })
+        }
+    }
+
+    const editor = useEditor({
+        immediatelyRender: false,
+        extensions: [
+            StarterKit,
+            ScreenplayBlock,
+            Placeholder.configure({
+                placeholder: ({ node }) => {
+                    return 'S# 1. 텅 빈 방 안 - 밤\n\n지문을 입력하세요...\n\n인물 \t대사...'
+                },
+                emptyEditorClass: 'is-editor-empty',
+            }),
+        ],
+        content: '',
+        onUpdate: ({ editor }) => {
+            checkScenePrompt(editor)
+        },
+        onSelectionUpdate: ({ editor }) => {
+            // When selection changes, determine active format
+            const { $from } = editor.state.selection
+            const node = $from.parent
+            if (node.type.name === 'screenplayBlock') {
+                setCurrentFormat(node.attrs.format as ScreenplayFormat)
+            }
+            checkScenePrompt(editor)
+        },
+        editorProps: {
+            handleKeyDown: (view, event) => {
+                if (promptActiveRef.current) {
+                    const currentList = promptTypeRef.current === 'location' ? SCENE_OPTIONS : TIME_OPTIONS
+                    if (event.key === ' ' || event.key === 'Spacebar') {
+                        event.preventDefault()
+                        const nextIdx = (promptIndexRef.current + 1) % currentList.length
+                        promptIndexRef.current = nextIdx
+                        setPromptIndex(nextIdx)
+                        return true
+                    }
+                    if (event.key === 'Enter') {
+                        event.preventDefault()
+                        const option = currentList[promptIndexRef.current]
+                        const { state, dispatch } = view
+                        const { $from } = state.selection
+                        const text = $from.parent.textContent
+
+                        if (promptTypeRef.current === 'location') {
+                            const tr = state.tr.insertText(option + ' - ')
+                            dispatch(tr)
+                        } else {
+                            // Replace trailing dash and spaces with standardized string
+                            const match = text.match(/(\s*-\s*)$/)
+                            if (match) {
+                                const tr = state.tr.delete($from.pos - match[1].length, $from.pos).insertText(' - ' + option)
+                                dispatch(tr)
+                            } else {
+                                const tr = state.tr.insertText(' - ' + option)
+                                dispatch(tr)
+                            }
+                        }
+
+                        promptActiveRef.current = false
+                        setScenePrompt({ active: false, type: 'location', top: 0, left: 0 })
+                        return true
+                    }
+                    if (event.key === 'Escape') {
+                        promptActiveRef.current = false
+                        setScenePrompt({ active: false, type: 'location', top: 0, left: 0 })
+                        return true
+                    }
+                }
+                if (event.key === 'Tab') {
+                    // Force prevent the browser from moving focus to the toolbar (outside editor)
+                    event.preventDefault()
+                    // Return false so TipTap's own keymap (addKeyboardShortcuts) can still process the Tab
+                    return false
+                }
+
+                if (event.key === 'F1') {
+                    event.preventDefault()
+                    setFormat('scene')
+                    return true
+                }
+                if (event.key === 'F2') {
+                    event.preventDefault()
+                    setFormat('action')
+                    return true
+                }
+                if (event.key === 'F3') {
+                    event.preventDefault()
+                    setFormat('dialogue')
+                    return true
+                }
+                return false
+            }
+        },
+        onTransaction: ({ transaction }) => {
+            // IME Composition fix - if transaction has meta related to composition, we can handle it if needed
+            // Tiptap usually handles this, but Korean Mac sometimes jumps.
+            // We will add event listeners on the DOM element instead for deeper control
+        }
+    })
+
+    useEffect(() => {
+        // Handle Korean IME Issue
+        const handleCompositionStart = () => setIsImeComposing(true)
+        const handleCompositionEnd = () => setIsImeComposing(false)
+
+        document.addEventListener('compositionstart', handleCompositionStart)
+        document.addEventListener('compositionend', handleCompositionEnd)
+
+        return () => {
+            document.removeEventListener('compositionstart', handleCompositionStart)
+            document.removeEventListener('compositionend', handleCompositionEnd)
+        }
+    }, [])
+
+    if (!editor) {
+        return null
+    }
+
+    const handleSave = async () => {
+        if (!editor) return
+
+        try {
+            let handle = fileHandle
+            if (!handle) {
+                handle = await (window as any).showSaveFilePicker({
+                    suggestedName: 'script.json',
+                    types: [{
+                        description: 'JSON Files',
+                        accept: { 'application/json': ['.json'] },
+                    }],
+                })
+                setFileHandle(handle)
+            }
+            const writable = await handle.createWritable()
+            // Wrap the data in a versioned object to store metadata
+            const saveData = {
+                version: 2,
+                titlePage,
+                document: editor.getJSON()
+            }
+            await writable.write(JSON.stringify(saveData))
+            await writable.close()
+            alert('저장되었습니다.')
+        } catch (err) {
+            console.error(err)
+        }
+    }
+
+    const handleLoad = async () => {
+        if (!editor) return
+
+        try {
+            const [handle] = await (window as any).showOpenFilePicker({
+                types: [{
+                    description: 'JSON Files',
+                    accept: { 'application/json': ['.json'] },
+                }],
+            })
+            setFileHandle(handle)
+            const file = await handle.getFile()
+            const content = await file.text()
+            const json = JSON.parse(content)
+
+            // V2 Document Extraction & Title Page Restoration
+            let docToLoad = json
+            if (json.version === 2 && json.document) {
+                docToLoad = json.document
+                if (json.titlePage) {
+                    setTitlePage(json.titlePage)
+                }
+            } else {
+                // Legacy V1 Document loaded - clear title page
+                setTitlePage({ title: '', author: '', contact: '' })
+            }
+
+            // Migrate legacy 4-format system ('character') to new 3-format system ('dialogue')
+            const migrateFormat = (node: any) => {
+                if (node.type === 'screenplayBlock' && node.attrs && node.attrs.format === 'character') {
+                    node.attrs.format = 'dialogue'
+                }
+                if (node.content && Array.isArray(node.content)) {
+                    node.content.forEach(migrateFormat)
+                }
+            }
+            if (docToLoad.type === 'doc' && docToLoad.content) {
+                docToLoad.content.forEach(migrateFormat)
+            }
+
+            // Load parsed document data safely into the editor
+            editor.commands.setContent(docToLoad)
+        } catch (err) {
+            console.error(err)
+        }
+    }
+
+    const setFormat = (format: ScreenplayFormat) => {
+        // Apply format to current block
+        const { state, dispatch } = editor.view
+        const { selection } = state
+        const { $from, $to } = selection
+
+        editor.chain().focus().command(({ tr, dispatch }) => {
+            if (dispatch) {
+                tr.setNodeMarkup($from.before(), undefined, { format })
+            }
+            return true
+        }).run()
+    }
+
+    const handleGeneratePdf = async () => {
+        if (!editor || isGeneratingPdf) return;
+        setIsGeneratingPdf(true);
+        try {
+            await generateAndDownloadPDF(titlePage, editor.getJSON());
+        } catch (e) {
+            console.error('PDF generation failed:', e);
+            alert('PDF 생성에 실패했습니다. (네트워크 연결을 확인해주세요)');
+        } finally {
+            setIsGeneratingPdf(false);
+        }
+    }
+
+    return (
+        <div className="flex flex-col h-screen overflow-hidden">
+            {/* Top Toolbar (Optional, hidden on print) */}
+            <div className="no-print border-b bg-gray-50 flex items-center justify-between px-4 py-2 shrink-0">
+                <div className="font-bold text-lg hidden sm:block">Kor Screenplay Writer</div>
+                <div className="flex gap-2">
+                    <button onClick={handleLoad} className="px-3 py-1 bg-white border rounded shadow-sm hover:bg-gray-50 text-sm">불러오기</button>
+                    <button onClick={handleSave} className="px-3 py-1 bg-blue-600 text-white border rounded shadow-sm hover:bg-blue-700 text-sm">저장하기</button>
+                    <button
+                        onClick={handleGeneratePdf}
+                        disabled={isGeneratingPdf}
+                        className={`px-3 py-1 text-white border rounded shadow-sm text-sm font-medium transition-colors ${isGeneratingPdf ? 'bg-indigo-400 border-indigo-400 cursor-not-allowed' : 'bg-indigo-600 border-indigo-700 hover:bg-indigo-700'}`}
+                    >
+                        {isGeneratingPdf ? '생성 중...' : 'PDF 저장'}
+                    </button>
+                </div>
+            </div>
+
+            {/* Editor Area */}
+            <div className="flex-1 overflow-auto bg-gray-100 dark:bg-zinc-900 pb-[100px] sm:pb-0 relative">
+                <EditorContent editor={editor} className="h-full" />
+
+                {/* Scene Auto-prompt Overlay */}
+                {scenePrompt.active && (
+                    <div
+                        className="fixed z-50 bg-white dark:bg-zinc-800 border shadow-xl rounded-md p-1.5 text-sm flex flex-col gap-1 w-32"
+                        style={{ top: scenePrompt.top + 8, left: scenePrompt.left }}
+                    >
+                        {(scenePrompt.type === 'location' ? SCENE_OPTIONS : TIME_OPTIONS).map((opt, i) => (
+                            <div
+                                key={opt}
+                                className={`px-3 py-1.5 rounded cursor-default transition-colors ${promptIndex === i ? 'bg-blue-600 text-white font-medium' : 'text-gray-800 dark:text-gray-200'}`}
+                            >
+                                {opt}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Title Page Indicator */}
+            <div
+                className="no-print fixed bottom-16 sm:bottom-24 right-4 sm:right-6 bg-white dark:bg-zinc-800 border dark:border-zinc-700 shadow-lg rounded-full px-4 py-2 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-700 flex items-center gap-2 z-40 transition-colors"
+                onClick={() => setIsTitleModalOpen(true)}
+            >
+                <span className="font-bold max-w-[150px] truncate">{titlePage.title || '문서 제목 없음'}</span>
+                <span className="text-gray-400 text-xs">표지 편집</span>
+            </div>
+
+            {/* Title Page Modal */}
+            {isTitleModalOpen && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-2xl p-6 w-full max-w-md flex flex-col gap-4">
+                        <div className="flex justify-between items-center border-b border-gray-200 dark:border-zinc-700 pb-3">
+                            <h2 className="text-xl font-bold">시나리오 표지 설정</h2>
+                            <button onClick={() => setIsTitleModalOpen(false)} className="text-gray-400 hover:text-gray-600 text-xl font-bold leading-none">&times;</button>
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">작품 제목</label>
+                            <input
+                                type="text"
+                                value={titlePage.title}
+                                onChange={e => setTitlePage(p => ({ ...p, title: e.target.value }))}
+                                className="border rounded-md p-2.5 focus:ring-2 focus:ring-blue-500 outline-none dark:bg-zinc-800 dark:border-zinc-700 transition-all text-sm"
+                                placeholder="작품 제목을 입력하세요"
+                            />
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">지은이</label>
+                            <input
+                                type="text"
+                                value={titlePage.author}
+                                onChange={e => setTitlePage(p => ({ ...p, author: e.target.value }))}
+                                className="border rounded-md p-2.5 focus:ring-2 focus:ring-blue-500 outline-none dark:bg-zinc-800 dark:border-zinc-700 transition-all text-sm"
+                                placeholder="지은이 이름을 입력하세요"
+                            />
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">연락처 / 비고</label>
+                            <textarea
+                                value={titlePage.contact}
+                                onChange={e => setTitlePage(p => ({ ...p, contact: e.target.value }))}
+                                className="border rounded-md p-2.5 h-24 resize-none focus:ring-2 focus:ring-blue-500 outline-none dark:bg-zinc-800 dark:border-zinc-700 transition-all text-sm leading-relaxed"
+                                placeholder="이메일, 전화번호, 또는 초고 작성일 등"
+                            ></textarea>
+                        </div>
+
+                        <div className="flex justify-end mt-2">
+                            <button
+                                onClick={() => setIsTitleModalOpen(false)}
+                                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-md transition-colors shadow-sm"
+                            >
+                                완료
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Touch Toolbar (Bottom fixed on mobile, or just floating) */}
+            <div className="no-print fixed bottom-0 left-0 right-0 bg-white border-t p-2 sm:p-4 shadow-[0_-2px_10px_rgba(0,0,0,0.1)] flex justify-center gap-2 overflow-x-auto">
+                {(Object.keys(FORMAT_LABELS) as ScreenplayFormat[]).map((fmt) => (
+                    <button
+                        key={fmt}
+                        onClick={() => setFormat(fmt)}
+                        className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${currentFormat === fmt
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
+                            }`}
+                    >
+                        {FORMAT_LABELS[fmt]}
+                    </button>
+                ))}
+            </div>
+        </div>
+    )
+}

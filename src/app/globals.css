@@ -1,26 +1,144 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --font-sans: var(--font-myeongjo), "Batang", "바탕", ui-serif, Georgia, Cambria,
+    "Times New Roman", Times, serif;
+  --font-serif: var(--font-myeongjo), "Batang", "바탕", ui-serif, Georgia,
+    Cambria, "Times New Roman", Times, serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Screenplay Default Variables */
+:root {
+  --background: #ffffff;
+  --foreground: #111111;
+
+  --sp-font-size: 12pt;
+  --sp-line-height: 1.6;
+
+  --sp-page-margin-x: 1in;
+  --sp-page-margin-y: 1in;
+
+  --sp-scene-margin-top: 1.5em;
+  --sp-scene-margin-bottom: 0.5em;
+
+  --sp-dialogue-margin-left: 0;
+  --sp-dialogue-margin-right: 0;
+
+  --sp-action-margin-top: 1em;
+
+  --sp-font-family: "Batang", "바탕", "KoPub Batang", "Nanum Myeongjo", serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #111111;
     --foreground: #ededed;
   }
 }
 
 body {
-  background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--background);
+  font-family: var(--sp-font-family);
+  font-size: var(--sp-font-size);
+  line-height: var(--sp-line-height);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* TipTap Editor Styles */
+.ProseMirror {
+  outline: none;
+  min-height: 100vh;
+  padding: var(--sp-page-margin-y) var(--sp-page-margin-x);
+  max-width: 8.5in;
+  margin: 0 auto;
+  background-color: var(--background);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+}
+
+@media (prefers-color-scheme: dark) {
+  .ProseMirror {
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
+  }
+}
+
+@media (max-width: 768px) {
+  .ProseMirror {
+    padding: 1rem;
+    box-shadow: none;
+  }
+}
+
+/* Screenplay Node Classes */
+.ProseMirror p {
+  margin: 0;
+  padding: 0;
+}
+
+/* 방금 불러온 JSON 파일의 첫 줄(S#) 여백이 ProseMirror 기본 설정에 의해 무시되는 현상 방지 */
+.ProseMirror>*:first-child {
+  margin-top: inherit !important;
+}
+
+.ProseMirror .sp-scene {
+  font-weight: bold;
+  margin-top: 1em;
+  margin-bottom: var(--sp-scene-margin-bottom);
+}
+
+.ProseMirror .sp-action {
+  margin-top: 1em;
+  margin-bottom: 1em;
+  line-height: 2;
+}
+
+.ProseMirror .sp-dialogue {
+  /* 인물 이름이 언제나 안정적으로 0px 안에서 시작하고, 대사는 100px 위치에서 정렬됩니다. */
+  margin-left: 0;
+  margin-right: var(--sp-dialogue-margin-right);
+
+  /* 완벽한 내어쓰기 + 탭 사이즈 공식 (창 크기에 영향받지 않는 픽셀 고정) */
+  padding-left: 50px;
+  text-indent: -50px;
+  tab-size: 50px;
+  -moz-tab-size: 50px;
+
+  margin-top: 0;
+  margin-bottom: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  line-height: 2;
+}
+
+/* Placeholder Styles */
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: #adb5bd;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  white-space: pre-wrap;
+}
+
+/* Print Media Query */
+@media print {
+  @page {
+    size: A4;
+    margin: var(--sp-page-margin-y) var(--sp-page-margin-x);
+  }
+
+  body,
+  .ProseMirror {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    min-height: auto !important;
+  }
+
+  /* Hide UI elements during print */
+  .no-print {
+    display: none !important;
+  }
 }
