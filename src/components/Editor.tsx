@@ -408,6 +408,30 @@ export default function Editor() {
                         setScenePrompt({ active: false })
                         return true
                     }
+
+                    // Custom Bulk Delete for Scene Attributes
+                    const { state } = view
+                    const { $from, empty } = state.selection
+                    if (empty && $from.parent.type.name === 'screenplayBlock' && $from.parent.attrs.format === 'scene') {
+                        const textBeforeCursor = $from.parent.textContent.slice(0, $from.parentOffset)
+                        const blockWords = ["내부", "외부", "내부/외부", "외부/내부", ...TIME_OPTIONS]
+
+                        for (const word of blockWords) {
+                            if (textBeforeCursor.endsWith(word)) {
+                                const beforeWord = textBeforeCursor.slice(0, -word.length)
+                                // Ensure it's not a partial match inside a normal location word (e.g., '시내부' shouldn't bulk delete '내부')
+                                if (beforeWord === '' || beforeWord.match(/[\s-]$/)) {
+                                    event.preventDefault()
+                                    const tr = state.tr.delete($from.pos - word.length, $from.pos)
+                                    view.dispatch(tr.scrollIntoView())
+
+                                    // Reset suppression so menus can potentially pop up again after deleting
+                                    insertSuppressionRef.current = false
+                                    return true
+                                }
+                            }
+                        }
+                    }
                 }
 
                 if (acActiveRef.current) {
