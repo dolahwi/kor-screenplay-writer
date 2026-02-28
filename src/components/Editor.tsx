@@ -99,6 +99,7 @@ export default function Editor() {
     const [fileHandle, setFileHandle] = useState<any>(null)
     const [isManualOpen, setIsManualOpen] = useState(false)
     const [isShowCredit, setIsShowCredit] = useState(false)
+    const [isSansFont, setIsSansFont] = useState(false)
 
     // Title Page State
     const [titlePage, setTitlePage] = useState<TitlePageData>({ title: '', author: '', contact: '' })
@@ -126,6 +127,15 @@ export default function Editor() {
     // Global suppression for prompt/autocomplete after selection via Enter
     const insertSuppressionRef = useRef(false)
     const backspaceSuppressionRef = useRef(false)
+
+    // Global Font Override
+    useEffect(() => {
+        if (isSansFont) {
+            document.documentElement.style.setProperty('--sp-font-family', 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif')
+        } else {
+            document.documentElement.style.removeProperty('--sp-font-family')
+        }
+    }, [isSansFont])
 
     const checkScenePrompt = (editor: any): boolean => {
         if (insertSuppressionRef.current) {
@@ -845,8 +855,18 @@ export default function Editor() {
                     </div>
                 )}
 
-                {/* Bottom Left Buttons (Manual & Credit) */}
+                {/* Bottom Left Buttons (Manual, Font, Credit) */}
                 <div className="no-print fixed bottom-4 sm:bottom-6 left-4 sm:left-6 flex flex-col gap-2 z-40">
+                    <div
+                        className="bg-white dark:bg-zinc-800 border dark:border-zinc-700 shadow-lg rounded-full px-4 py-2 sm:py-2.5 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-700 flex items-center justify-center transition-colors group"
+                        onClick={() => setIsSansFont(!isSansFont)}
+                        title="폰트 변경"
+                    >
+                        <span className="font-bold text-gray-700 dark:text-gray-200 text-xs sm:text-sm group-hover:text-blue-600 transition-colors">
+                            {isSansFont ? '고딕체' : '명조체'}
+                        </span>
+                    </div>
+
                     <div
                         className="bg-white dark:bg-zinc-800 border dark:border-zinc-700 shadow-lg rounded-full p-2.5 sm:p-3 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-700 flex items-center justify-center gap-2 transition-colors group"
                         onClick={() => setIsManualOpen(true)}
@@ -855,12 +875,13 @@ export default function Editor() {
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-600 dark:text-gray-300 group-hover:text-blue-600 transition-colors"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                         <span className="font-bold text-gray-700 dark:text-gray-200 hidden sm:block pr-1">설명서</span>
                     </div>
+
                     <div
-                        className="bg-white dark:bg-zinc-800 border dark:border-zinc-700 shadow-lg rounded-full px-4 py-2 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-700 flex items-center justify-center transition-colors group"
+                        className="bg-white dark:bg-zinc-800 border dark:border-zinc-700 shadow-lg rounded-full px-4 py-2 sm:py-2.5 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-700 flex items-center justify-center transition-colors group"
                         onClick={() => setIsShowCredit(true)}
                         title="만든이"
                     >
-                        <span className="font-bold text-gray-700 dark:text-gray-200 text-xs uppercase tracking-widest group-hover:text-blue-600 transition-colors">By HWI</span>
+                        <span className="font-bold text-gray-700 dark:text-gray-200 text-xs uppercase tracking-widest group-hover:text-blue-600 transition-colors">WHO</span>
                     </div>
                 </div>
             </div>
