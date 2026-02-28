@@ -16,6 +16,20 @@ const FORMAT_LABELS: Record<ScreenplayFormat, string> = {
 const SCENE_OPTIONS = ['내부', '외부', '내부/외부', '외부/내부']
 const TIME_OPTIONS = ['아침', '낮', '저녁', '밤', '새벽']
 
+const CHOSEONG = ["ㄱ", "ㄲ", "ㄴ", "ㄷ", "ㄸ", "ㄹ", "ㅁ", "ㅂ", "ㅃ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅉ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ"];
+const getChoseong = (str: string) => {
+    let result = "";
+    for (let i = 0; i < str.length; i++) {
+        const code = str.charCodeAt(i) - 44032;
+        if (code > -1 && code < 11172) {
+            result += CHOSEONG[Math.floor(code / 588)];
+        } else {
+            result += str.charAt(i);
+        }
+    }
+    return result;
+}
+
 interface TitlePageData {
     title: string;
     author: string;
@@ -45,9 +59,19 @@ export default function Editor() {
     const acItemsRef = useRef<string[]>([])
     const acIndexRef = useRef(0)
     const acSearchRef = useRef('')
+    const acSuppressedRef = useRef(false)
+    const promptSuppressedRef = useRef(false)
     const [autoComplete, setAutoComplete] = useState<{ active: false } | { active: true; top: number; left: number; items: string[]; index: number }>({ active: false })
 
-    const checkScenePrompt = (editor: any) => {
+    const checkScenePrompt = (editor: any): boolean => {
+        if (promptSuppressedRef.current) {
+            if (promptActiveRef.current) {
+                promptActiveRef.current = false
+                setScenePrompt({ active: false, type: 'location', top: 0, left: 0 })
+            }
+            return false
+        }
+
         const { state, view } = editor
         const { $from } = state.selection
         const node = $from.parent
@@ -74,7 +98,7 @@ export default function Editor() {
                     } else {
                         setScenePrompt(prev => ({ ...prev, top: coords.bottom + window.scrollY, left: coords.left + window.scrollX }))
                     }
-                    return
+                    return true
                 } catch (e) {
                     // Ignore transient coordinate errors
                 }
@@ -85,9 +109,18 @@ export default function Editor() {
             promptActiveRef.current = false
             setScenePrompt({ active: false, type: 'location', top: 0, left: 0 })
         }
+        return false
     }
 
-    const checkAutoComplete = (editor: any) => {
+    const checkAutoComplete = (editor: any): boolean => {
+        if (acSuppressedRef.current) {
+            if (acActiveRef.current) {
+                acActiveRef.current = false
+                setAutoComplete({ active: false })
+            }
+            return false
+        }
+
         const { state, view } = editor
         const { $from } = state.selection
         const node = $from.parent
@@ -97,16 +130,23 @@ export default function Editor() {
                 acActiveRef.current = false
                 setAutoComplete({ active: false })
             }
-            return
+            return false
         }
 
         const format = node.attrs.format
 
         if (format === 'scene') {
             const text = node.textContent
-            const match = text.match(/^S#\s\d+\.\s+(.+)$/)
-            if (match) {
-                const search = match[1]
+            const matchFull = text.match(/^S#\s\d+\.\s+(.+)$/)
+            if (matchFull) {
+                const search = matchFull[1].trim()
+                if (!search) {
+                    if (acActiveRef.current) {
+                        acActiveRef.current = false
+                        setAutoComplete({ active: false })
+                    }
+                    return false
+                }
                 const scenes = new Set<string>()
                 state.doc.descendants((n: any) => {
                     if (n.type.name === 'screenplayBlock' && n.attrs.format === 'scene' && n !== node) {
@@ -115,7 +155,12 @@ export default function Editor() {
                     }
                 })
 
-                const matches = Array.from(scenes).filter(s => s.startsWith(search) && s !== search).slice(0, 10)
+                const searchChoseong = getChoseong(search)
+                const matches = Array.from(scenes).filter(s => {
+                    if (s === search) return false;
+                    return s.startsWith(search) || getChoseong(s).startsWith(searchChoseong);
+                }).slice(0, 10)
+
                 if (matches.length > 0) {
                     try {
                         const coords = view.coordsAtPos(state.selection.from)
@@ -132,7 +177,7 @@ export default function Editor() {
                             index: acIndexRef.current
                         })
                     } catch (e) { }
-                    return
+                    return true
                 }
             }
         } else if (format === 'dialogue') {
@@ -150,7 +195,12 @@ export default function Editor() {
                     }
                 })
 
-                const matches = Array.from(chars).filter(c => c.startsWith(search) && c !== search).slice(0, 10)
+                const searchChoseong = getChoseong(search)
+                const matches = Array.from(chars).filter(c => {
+                    if (c === search) return false;
+                    return c.startsWith(search) || getChoseong(c).startsWith(searchChoseong);
+                }).slice(0, 10)
+
                 if (matches.length > 0) {
                     try {
                         const coords = view.coordsAtPos(state.selection.from)
@@ -167,7 +217,7 @@ export default function Editor() {
                             index: acIndexRef.current
                         })
                     } catch (e) { }
-                    return
+                    return true
                 }
             }
         }
@@ -176,6 +226,7 @@ export default function Editor() {
             acActiveRef.current = false
             setAutoComplete({ active: false })
         }
+        return false
     }
 
     const editor = useEditor({
@@ -192,8 +243,10 @@ export default function Editor() {
         ],
         content: '',
         onUpdate: ({ editor }) => {
-            checkScenePrompt(editor)
-            checkAutoComplete(editor)
+            acSuppressedRef.current = false
+            promptSuppressedRef.current = false
+            const acActive = checkAutoComplete(editor)
+            if (!acActive) checkScenePrompt(editor)
         },
         onSelectionUpdate: ({ editor }) => {
             // When selection changes, determine active format
@@ -202,11 +255,44 @@ export default function Editor() {
             if (node.type.name === 'screenplayBlock') {
                 setCurrentFormat(node.attrs.format as ScreenplayFormat)
             }
-            checkScenePrompt(editor)
-            checkAutoComplete(editor)
+            const acActive = checkAutoComplete(editor)
+            if (!acActive) checkScenePrompt(editor)
         },
         editorProps: {
             handleKeyDown: (view, event) => {
+                if (event.key === 'Backspace') {
+                    if (acActiveRef.current) {
+                        event.preventDefault()
+                        acSuppressedRef.current = true
+                        acActiveRef.current = false
+                        setAutoComplete({ active: false })
+
+                        // Open scene prompt fallback
+                        const { state } = view
+                        const node = state.selection.$from.parent
+                        if (node.type.name === 'screenplayBlock' && node.attrs.format === 'scene') {
+                            const text = node.textContent
+                            let promptType: 'location' | 'time' = text.includes('-') ? 'time' : 'location'
+                            promptActiveRef.current = true
+                            promptTypeRef.current = promptType
+                            promptIndexRef.current = 0
+                            setPromptIndex(0)
+                            promptSuppressedRef.current = false
+                            try {
+                                const coords = view.coordsAtPos(state.selection.from)
+                                setScenePrompt({ active: true, type: promptType, top: coords.bottom + window.scrollY, left: coords.left + window.scrollX })
+                            } catch (e) { }
+                        }
+                        return true
+                    } else if (promptActiveRef.current) {
+                        event.preventDefault()
+                        promptSuppressedRef.current = true
+                        promptActiveRef.current = false
+                        setScenePrompt({ active: false, type: 'location', top: 0, left: 0 })
+                        return true
+                    }
+                }
+
                 if (promptActiveRef.current) {
                     const currentList = promptTypeRef.current === 'location' ? SCENE_OPTIONS : TIME_OPTIONS
                     if (event.key === ' ' || event.key === 'Spacebar') {
@@ -244,12 +330,20 @@ export default function Editor() {
                     }
                     if (event.key === 'Escape') {
                         promptActiveRef.current = false
+                        promptSuppressedRef.current = true
                         setScenePrompt({ active: false, type: 'location', top: 0, left: 0 })
                         return true
                     }
                 }
 
                 if (acActiveRef.current) {
+                    if (event.key === ' ' || event.key === 'Spacebar') {
+                        event.preventDefault()
+                        const nextIdx = (acIndexRef.current + 1) % acItemsRef.current.length
+                        acIndexRef.current = nextIdx
+                        setAutoComplete(prev => prev.active ? { ...prev, index: nextIdx } : prev)
+                        return true
+                    }
                     if (event.key === 'ArrowDown') {
                         event.preventDefault()
                         const nextIdx = (acIndexRef.current + 1) % acItemsRef.current.length
@@ -278,6 +372,8 @@ export default function Editor() {
                         return true
                     }
                     if (event.key === 'Escape') {
+                        event.preventDefault()
+                        acSuppressedRef.current = true
                         acActiveRef.current = false
                         setAutoComplete({ active: false })
                         return true
