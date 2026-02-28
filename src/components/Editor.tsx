@@ -167,6 +167,8 @@ export default function Editor() {
     const [showTutorial, setShowTutorial] = useState(false)
     const [tutorialStep, setTutorialStep] = useState(0)
     const [showUpdatePopup, setShowUpdatePopup] = useState(false)
+    const [hideUpdateToday, setHideUpdateToday] = useState(false)
+    const [isChangelogOpen, setIsChangelogOpen] = useState(false)
 
     // Title Page State
     const [titlePage, setTitlePage] = useState<TitlePageData>({ title: '', author: '', contact: '' })
@@ -209,15 +211,20 @@ export default function Editor() {
         const hasSeenTutorial = localStorage.getItem('hasSeenKorScreenplayTutorial')
         if (!hasSeenTutorial) {
             setShowTutorial(true)
-        }
-
-        const savedVersion = localStorage.getItem('korScreenplayVersion')
-        if (savedVersion !== CURRENT_APP_VERSION) {
-            // If they have seen the tutorial before, and version is new, show update popup
-            if (hasSeenTutorial) {
-                setShowUpdatePopup(true)
+        } else {
+            // Always show update popup if they've seen the tutorial, UNLESS they checked "오늘 하루 보지 않기"
+            const hideTodayTarget = localStorage.getItem('hideKorScreenplayUpdateToday')
+            if (hideTodayTarget) {
+                const hideTime = parseInt(hideTodayTarget, 10)
+                const now = Date.now()
+                // If it's been less than 24 hours, don't show
+                if (now - hideTime < 24 * 60 * 60 * 1000) {
+                    return
+                } else {
+                    localStorage.removeItem('hideKorScreenplayUpdateToday')
+                }
             }
-            localStorage.setItem('korScreenplayVersion', CURRENT_APP_VERSION)
+            setShowUpdatePopup(true)
         }
     }, [])
 
@@ -1115,9 +1122,44 @@ export default function Editor() {
 
                             <div className="text-[11px] text-gray-500 dark:text-gray-400 mt-8 pt-4 border-t border-gray-100 dark:border-zinc-800 leading-relaxed">
                                 한글로 Final Draft 를 사용 불가능한 사람들을 위해... 대한민국에 맞는 시나리오 에디터를 만들었습니다.<br />
-                                버전 v.1.1<br />
+                                버전 {CURRENT_APP_VERSION}<br />
                                 문의/건의 사항 <a href="mailto:jungw02@naver.com" className="text-blue-500 hover:text-blue-600 underline underline-offset-2">jungw02@naver.com</a><br />
                                 여러분의 소중한 말 한마디가 여러분을 편하게 해드릴 수 있습니다.
+                            </div>
+
+                            {/* Collapsible Changelog */}
+                            <div className="mt-4 bg-gray-50 dark:bg-zinc-800/50 rounded-lg p-3 border border-gray-200 dark:border-zinc-700">
+                                <button
+                                    onClick={() => setIsChangelogOpen(!isChangelogOpen)}
+                                    className="w-full flex justify-between items-center text-sm font-bold text-gray-700 dark:text-gray-300"
+                                >
+                                    <span>버전 업데이트 로그 보기</span>
+                                    <span>{isChangelogOpen ? '▲' : '▼'}</span>
+                                </button>
+
+                                {isChangelogOpen && (
+                                    <div className="mt-4 space-y-4 text-xs text-gray-600 dark:text-gray-400 border-t border-gray-200 dark:border-zinc-700 pt-3">
+                                        <div>
+                                            <div className="font-bold text-blue-600 dark:text-blue-400 mb-1">v.1.1</div>
+                                            <ul className="list-disc pl-4 space-y-1">
+                                                <li>대사 작성 시 간격 예시 수정 및 가독성 개선</li>
+                                                <li>설명서 하단 연락처 이메일 자동 열기 링크 적용</li>
+                                                <li>설명서 내 업데이트 로그 기능 추가</li>
+                                                <li>알림창 오늘 하루 보지 않기 기능 추가</li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <div className="font-bold text-gray-700 dark:text-gray-300 mb-1">v.1.0</div>
+                                            <ul className="list-disc pl-4 space-y-1">
+                                                <li>기본 한국어 맞춤형 단축키 및 스마트 서식 전환 기능 출시</li>
+                                                <li>씬 장소/인물 초성 검색 및 자동 완성 추가</li>
+                                                <li>PDF 내보내기 완벽 지원</li>
+                                                <li>폰트 변경(명조/고딕) 지원</li>
+                                                <li>로컬 파일 저장/불러오기 기능 추가</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="mt-[150vh] pb-4 text-center text-gray-400 dark:text-gray-500 text-[10px] sm:text-xs font-medium italic break-keep opacity-30 hover:opacity-100 transition-opacity duration-500">
@@ -1178,9 +1220,24 @@ export default function Editor() {
                         </div>
 
                         {/* Footer */}
-                        <div className="p-4 bg-gray-50 dark:bg-zinc-800/50 border-t border-gray-100 dark:border-zinc-800 flex justify-center">
+                        <div className="p-4 bg-gray-50 dark:bg-zinc-800/50 border-t border-gray-100 dark:border-zinc-800 flex flex-col gap-3">
+                            <label className="flex items-center justify-end gap-2 text-xs text-gray-500 dark:text-gray-400 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    className="rounded border-gray-300 dark:border-zinc-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                    checked={hideUpdateToday}
+                                    onChange={(e) => setHideUpdateToday(e.target.checked)}
+                                />
+                                <span>오늘 하루 그만 보기</span>
+                            </label>
+
                             <button
-                                onClick={() => setShowUpdatePopup(false)}
+                                onClick={() => {
+                                    if (hideUpdateToday) {
+                                        localStorage.setItem('hideKorScreenplayUpdateToday', Date.now().toString())
+                                    }
+                                    setShowUpdatePopup(false)
+                                }}
                                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-lg transition-colors shadow-sm"
                             >
                                 확인하고 시작하기
