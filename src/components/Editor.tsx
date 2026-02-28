@@ -1009,7 +1009,10 @@ export default function Editor() {
                     className="fixed inset-0 bg-black z-[100] flex items-center justify-center overflow-hidden cursor-pointer"
                     onClick={() => setIsShowCredit(false)}
                 >
-                    <div className="text-[40vw] md:text-[90vh] leading-none font-sans font-black text-white tracking-tighter select-none drop-shadow-[0_0_30px_rgba(255,255,255,0.4)] hover:scale-[1.02] transition-transform duration-500">
+                    <div
+                        className="text-[40vw] md:text-[90vh] leading-none font-black text-white tracking-tighter select-none drop-shadow-[0_0_30px_rgba(255,255,255,0.4)] hover:scale-[1.02] transition-transform duration-500"
+                        style={{ fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" }}
+                    >
                         HWI
                     </div>
                 </div>
