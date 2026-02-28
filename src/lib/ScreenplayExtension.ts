@@ -44,6 +44,12 @@ export const ScreenplayBlock = Node.create({
                 const { selection } = state
                 const { $from, empty } = selection
 
+                // Korean IME Fix
+                if (this.editor.view.composing) {
+                    this.editor.view.dom.blur()
+                    this.editor.view.dom.focus()
+                }
+
                 const node = $from.parent
                 if (node.type.name !== this.name) {
                     if (dispatch) {
@@ -137,7 +143,19 @@ export const ScreenplayBlock = Node.create({
                 // "지문에서 시프트 엔터 누르면 지문 내에서 줄바꿈"
                 // "대사에서 시프트 엔터 누르면 대사 내에서 줄바꿈."
                 return this.editor.commands.setHardBreak()
-            }
+            },
+
+            'Mod-1': () => {
+                return this.editor.commands.updateAttributes(this.name, { format: 'scene' })
+            },
+
+            'Mod-2': () => {
+                return this.editor.commands.updateAttributes(this.name, { format: 'action' })
+            },
+
+            'Mod-3': () => {
+                return this.editor.commands.updateAttributes(this.name, { format: 'dialogue' })
+            },
         }
     },
 

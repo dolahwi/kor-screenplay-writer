@@ -8,9 +8,9 @@ import { generateAndDownloadPDF } from '@/lib/pdfGenerator'
 import { useEffect, useState, useRef } from 'react'
 
 const FORMAT_LABELS: Record<ScreenplayFormat, string> = {
-    scene: '씬(S#)',
-    action: '지문',
-    dialogue: '대사',
+    scene: '씬(S#) ⌘1',
+    action: '지문 ⌘2',
+    dialogue: '대사 ⌘3',
 }
 
 const SCENE_OPTIONS = ['내부', '외부', '내부/외부', '외부/내부']
@@ -155,17 +155,17 @@ export default function Editor() {
                     return false
                 }
 
-                if (event.key === 'F1') {
+                if (event.key === 'F1' || (event.metaKey && event.key === '1')) {
                     event.preventDefault()
                     setFormat('scene')
                     return true
                 }
-                if (event.key === 'F2') {
+                if (event.key === 'F2' || (event.metaKey && event.key === '2')) {
                     event.preventDefault()
                     setFormat('action')
                     return true
                 }
-                if (event.key === 'F3') {
+                if (event.key === 'F3' || (event.metaKey && event.key === '3')) {
                     event.preventDefault()
                     setFormat('dialogue')
                     return true
