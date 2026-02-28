@@ -97,6 +97,7 @@ export default function Editor() {
     const [currentFormat, setCurrentFormat] = useState<ScreenplayFormat>('action')
     const [isImeComposing, setIsImeComposing] = useState(false)
     const [fileHandle, setFileHandle] = useState<any>(null)
+    const [isManualOpen, setIsManualOpen] = useState(false)
 
     // Title Page State
     const [titlePage, setTitlePage] = useState<TitlePageData>({ title: '', author: '', contact: '' })
@@ -842,6 +843,16 @@ export default function Editor() {
                         ))}
                     </div>
                 )}
+
+                {/* Manual Button (Bottom Left) */}
+                <div
+                    className="no-print fixed bottom-4 sm:bottom-6 left-4 sm:left-6 bg-white dark:bg-zinc-800 border dark:border-zinc-700 shadow-lg rounded-full p-2.5 sm:p-3 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-700 flex items-center justify-center gap-2 z-40 transition-colors group"
+                    onClick={() => setIsManualOpen(true)}
+                    title="설명서 보기"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-600 dark:text-gray-300 group-hover:text-blue-600 transition-colors"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                    <span className="font-bold text-gray-700 dark:text-gray-200 hidden sm:block pr-1">설명서</span>
+                </div>
             </div>
 
             {/* Title Page Indicator */}
@@ -900,6 +911,82 @@ export default function Editor() {
                                 className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-md transition-colors shadow-sm"
                             >
                                 완료
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Manual Modal */}
+            {isManualOpen && (
+                <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-2xl p-6 w-full max-w-2xl max-h-[85vh] flex flex-col gap-4 overflow-hidden">
+                        <div className="flex justify-between items-center border-b border-gray-200 dark:border-zinc-700 pb-3 shrink-0">
+                            <h2 className="text-xl font-bold flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                                단축키 및 사용 설명서
+                            </h2>
+                            <button onClick={() => setIsManualOpen(false)} className="text-gray-400 hover:text-gray-600 text-xl font-bold leading-none p-2">&times;</button>
+                        </div>
+
+                        <div className="overflow-y-auto pr-2 pb-4 text-sm text-gray-700 dark:text-gray-300 space-y-6">
+
+                            <section>
+                                <h3 className="font-bold text-base text-gray-900 dark:text-gray-100 mb-2 border-l-4 border-blue-500 pl-2">1. 기본 서식 단축키 (Mac/Win 공통)</h3>
+                                <ul className="list-disc pl-5 space-y-1.5">
+                                    <li><kbd className="bg-gray-100 dark:bg-zinc-800 border px-1.5 py-0.5 rounded text-xs">F1</kbd> 또는 <kbd className="bg-gray-100 dark:bg-zinc-800 border px-1.5 py-0.5 rounded text-xs">Cmd/Ctrl + 1</kbd> : <strong>씬 제목 (Scene)</strong> 블록으로 변경</li>
+                                    <li><kbd className="bg-gray-100 dark:bg-zinc-800 border px-1.5 py-0.5 rounded text-xs">F2</kbd> 또는 <kbd className="bg-gray-100 dark:bg-zinc-800 border px-1.5 py-0.5 rounded text-xs">Cmd/Ctrl + 2</kbd> : <strong>지문 (Action)</strong> 블록으로 변경</li>
+                                    <li><kbd className="bg-gray-100 dark:bg-zinc-800 border px-1.5 py-0.5 rounded text-xs">F3</kbd> 또는 <kbd className="bg-gray-100 dark:bg-zinc-800 border px-1.5 py-0.5 rounded text-xs">Cmd/Ctrl + 3</kbd> : <strong>대사 (Dialogue)</strong> 블록으로 변경</li>
+                                    <li className="text-gray-500 mt-1">※ 씬 제목 환경에서 `엔터`를 치면 자동으로 지문 환경으로 넘어가는 등 똑똑하게 자동 전환됩니다.</li>
+                                </ul>
+                            </section>
+
+                            <section>
+                                <h3 className="font-bold text-base text-gray-900 dark:text-gray-100 mb-2 border-l-4 border-emerald-500 pl-2">2. 장소/인물 자동 완성 (최근 사용)</h3>
+                                <ul className="list-disc pl-5 space-y-1.5">
+                                    <li><strong>초성 검색 지원</strong>: `학교`를 찾을 때 `ㅎㄱ`만 입력해도 이전에 썼던 장소/인물 목록 창(초록색)이 뜹니다.</li>
+                                    <li><strong>이동 및 선택</strong>: 목록이 떴을 때 <kbd className="bg-gray-100 dark:bg-zinc-800 border px-1.5 py-0.5 rounded text-xs">Spacebar</kbd> 또는 <kbd className="bg-gray-100 dark:bg-zinc-800 border px-1.5 py-0.5 rounded text-xs">위/아래 방향키</kbd>로 이동하고 <kbd className="bg-gray-100 dark:bg-zinc-800 border px-1.5 py-0.5 rounded text-xs">Enter</kbd>로 선택합니다.</li>
+                                    <li><strong>메뉴 닫기</strong>: 마음에 드는 게 없거나 직접 입력하고 싶다면 무시하고 계속 타이핑하시거나 <kbd className="bg-gray-100 dark:bg-zinc-800 border px-1.5 py-0.5 rounded text-xs">ESC</kbd>를 누르면 창이 닫힙니다.</li>
+                                </ul>
+                            </section>
+
+                            <section>
+                                <h3 className="font-bold text-base text-gray-900 dark:text-gray-100 mb-2 border-l-4 border-indigo-500 pl-2">3. 씬 제목 스마트 입력 기능</h3>
+                                <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md border border-blue-100 dark:border-blue-800 text-sm mb-2">
+                                    <strong>타이핑 예시:</strong> `S# 1. 내부` 띄어쓰기 `학교 앞` 띄어쓰기 `낮`
+                                </div>
+                                <ul className="list-disc pl-5 space-y-1.5">
+                                    <li>장소 (`-` 기호 앞부분) 를 입력하고 스페이스바를 치면 <strong>내부/외부 (파란색)</strong> 목록이 뜹니다.</li>
+                                    <li>시간 (`-` 기호 뒷부분) 위치에서 스페이스바를 치면 <strong>시간 대(아침, 낮, 밤 등)</strong> 목록이 뜹니다.</li>
+                                    <li>엔터를 쳐서 목록을 선택하면 <strong>자동으로 띄어쓰기와 붙임표( - )가 삽입</strong>되어 형식을 깔끔하게 맞춥니다.</li>
+                                </ul>
+                            </section>
+
+                            <section>
+                                <h3 className="font-bold text-base text-gray-900 dark:text-gray-100 mb-2 border-l-4 border-red-500 pl-2">4. 스마트 삭제 (Backspace)</h3>
+                                <ul className="list-disc pl-5 space-y-1.5">
+                                    <li>씬 제목 줄에서 백스페이스를 눌러 텍스트를 지울 때, <strong>장소 단어("우리 학교"), 내부/외부 형식, 시간대("아침"), 연결자(" - ")가 "단어 덩어리" 단위로 한 번에 삭제</strong>되어 수정이 매우 편리합니다.</li>
+                                    <li>글자를 지우는 도중에는 팝업 메뉴가 뜨지 않습니다. 다 지우고 다시 스페이스바를 톡 치면 그때 유용한 정보 목록이 나타납니다.</li>
+                                </ul>
+                            </section>
+
+                            <section>
+                                <h3 className="font-bold text-base text-gray-900 dark:text-gray-100 mb-2 border-l-4 border-purple-500 pl-2">5. 저장 및 내보내기</h3>
+                                <ul className="list-disc pl-5 space-y-1.5">
+                                    <li><strong>저장하기 (.json)</strong>: 현재 작업 중인 시나리오 원본 데이터를 컴퓨터에 파일로 저장합니다.</li>
+                                    <li><strong>불러오기</strong>: 다운로드 받았던 .json 파일을 가져와서 하던 작업을 계속할 수 있습니다.</li>
+                                    <li><strong>PDF 저장</strong>: 우측 하단의 `표지 편집` 버튼을 눌러 제목과 이름을 세팅한 뒤, 상단 <strong>PDF 저장</strong> 버튼을 누르면 인쇄소에 보낼 수 있는 한국 표준 A4 규격의 시나리오 PDF가 생성됩니다.</li>
+                                </ul>
+                            </section>
+
+                        </div>
+
+                        <div className="flex justify-end pt-2 border-t border-gray-100 dark:border-zinc-800 shrink-0">
+                            <button
+                                onClick={() => setIsManualOpen(false)}
+                                className="bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-gray-800 dark:text-gray-200 font-bold py-2 px-8 rounded-md transition-colors shadow-sm"
+                            >
+                                닫기
                             </button>
                         </div>
                     </div>
