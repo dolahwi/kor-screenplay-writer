@@ -13,7 +13,7 @@ const FORMAT_LABELS: Record<ScreenplayFormat, string> = {
     dialogue: '대사 ⌘3',
 }
 
-const CURRENT_APP_VERSION = "v1.1"
+const CURRENT_APP_VERSION = "v1.2"
 
 const TUTORIAL_STEPS = [
     {
@@ -157,7 +157,19 @@ interface TitlePageData {
     contact: string;
 }
 
-export default function Editor() {
+export default function Editor({
+    onViewChange,
+    currentBeatBoardData,
+    onBeatBoardDataLoaded,
+    initialDocumentData,
+    initialTitlePage
+}: {
+    onViewChange?: (view: 'writer' | 'board', docData?: any, titleData?: any) => void,
+    currentBeatBoardData?: any,
+    onBeatBoardDataLoaded?: (data: any) => void,
+    initialDocumentData?: any,
+    initialTitlePage?: any
+}) {
     const [currentFormat, setCurrentFormat] = useState<ScreenplayFormat>('action')
     const [isImeComposing, setIsImeComposing] = useState(false)
     const [fileHandle, setFileHandle] = useState<any>(null)
@@ -171,7 +183,7 @@ export default function Editor() {
     const [isChangelogOpen, setIsChangelogOpen] = useState(false)
 
     // Title Page State
-    const [titlePage, setTitlePage] = useState<TitlePageData>({ title: '', author: '', contact: '' })
+    const [titlePage, setTitlePage] = useState<TitlePageData>(initialTitlePage || { title: '', author: '', contact: '' })
     const [isTitleModalOpen, setIsTitleModalOpen] = useState(false)
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
@@ -451,7 +463,7 @@ export default function Editor() {
                 emptyEditorClass: 'is-editor-empty',
             }),
         ],
-        content: '',
+        content: initialDocumentData || '',
         onUpdate: ({ editor }) => {
             if (insertSuppressionRef.current) {
                 acSuppressedRef.current = true
@@ -724,7 +736,8 @@ export default function Editor() {
         const saveData = {
             version: 2,
             titlePage,
-            document: editor.getJSON()
+            document: editor.getJSON(),
+            beatBoard: currentBeatBoardData
         }
         const jsonString = JSON.stringify(saveData)
 
@@ -758,7 +771,8 @@ export default function Editor() {
                 URL.revokeObjectURL(url)
                 alert('다운로드 폴더에 저장되었습니다.')
             }
-        } catch (err) {
+        } catch (err: any) {
+            if (err.name === 'AbortError') return;
             console.error(err)
         }
     }
@@ -776,9 +790,20 @@ export default function Editor() {
                     if (json.titlePage) {
                         setTitlePage(json.titlePage)
                     }
+                    if (json.beatBoard && onBeatBoardDataLoaded) {
+                        onBeatBoardDataLoaded({
+                            ...json.beatBoard,
+                            viewport: json.beatBoard.viewport || { x: 0, y: 0, zoom: 0.9 }
+                        })
+                    } else if (onBeatBoardDataLoaded) {
+                        onBeatBoardDataLoaded(null)
+                    }
                 } else {
                     // Legacy V1 Document loaded - clear title page
                     setTitlePage({ title: '', author: '', contact: '' })
+                    if (onBeatBoardDataLoaded) {
+                        onBeatBoardDataLoaded(null)
+                    }
                 }
 
                 // Migrate legacy 4-format system ('character') to new 3-format system ('dialogue')
@@ -819,7 +844,8 @@ export default function Editor() {
                     fileInputRef.current.click()
                 }
             }
-        } catch (err) {
+        } catch (err: any) {
+            if (err.name === 'AbortError') return;
             console.error(err)
         }
     }
@@ -840,8 +866,16 @@ export default function Editor() {
                         if (json.titlePage) {
                             setTitlePage(json.titlePage)
                         }
+                        if (json.beatBoard && onBeatBoardDataLoaded) {
+                            onBeatBoardDataLoaded(json.beatBoard)
+                        } else if (onBeatBoardDataLoaded) {
+                            onBeatBoardDataLoaded(null)
+                        }
                     } else {
                         setTitlePage({ title: '', author: '', contact: '' })
+                        if (onBeatBoardDataLoaded) {
+                            onBeatBoardDataLoaded(null)
+                        }
                     }
 
                     const migrateFormat = (node: any) => {
@@ -899,7 +933,20 @@ export default function Editor() {
         <div className="flex flex-col h-screen overflow-hidden">
             {/* Top Toolbar (Optional, hidden on print) */}
             <div className="no-print border-b bg-gray-50 flex items-center justify-between px-4 py-2 shrink-0">
-                <div className="font-bold text-lg hidden sm:block">Kor Screenplay Writer</div>
+                <div className="flex items-center gap-3 hidden sm:flex">
+                    <button
+                        onClick={() => onViewChange?.('writer')}
+                        className="text-lg text-gray-900 dark:text-gray-100 font-serif font-black"
+                    >
+                        Kor Screenplay Writer
+                    </button>
+                    <button
+                        onClick={() => onViewChange?.('board', editor?.getJSON(), titlePage)}
+                        className="text-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors font-sans font-bold"
+                    >
+                        Kor BeatBoard
+                    </button>
+                </div>
                 <div className="flex gap-2">
                     <input
                         type="file"
@@ -1140,7 +1187,16 @@ export default function Editor() {
                                 {isChangelogOpen && (
                                     <div className="mt-4 space-y-4 text-xs text-gray-600 dark:text-gray-400 border-t border-gray-200 dark:border-zinc-700 pt-3">
                                         <div>
-                                            <div className="font-bold text-blue-600 dark:text-blue-400 mb-1">v.1.1</div>
+                                            <div className="font-bold text-blue-600 dark:text-blue-400 mb-1">v.1.2</div>
+                                            <ul className="list-disc pl-4 space-y-1">
+                                                <li><strong>Kor BeatBoard</strong> 시각화 보드 기능 통합 출시</li>
+                                                <li>자석 그룹화 (기차놀이) 및 노드 스냅 기능 추가</li>
+                                                <li>메모지 및 캔버스 배경 색상 커스텀 기능 추가</li>
+                                                <li>대본 및 보드 데이터를 하나의 .json으로 통합 저장 지원</li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <div className="font-bold text-gray-700 dark:text-gray-300 mb-1">v.1.1</div>
                                             <ul className="list-disc pl-4 space-y-1">
                                                 <li>대사 작성 시 간격 예시 수정 및 가독성 개선</li>
                                                 <li>설명서 하단 연락처 이메일 자동 열기 링크 적용</li>
@@ -1206,15 +1262,15 @@ export default function Editor() {
                             <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
                                 <li className="flex gap-2">
                                     <span className="text-blue-500">✓</span>
-                                    <span>대사 작성 시 <strong>간격 예시</strong> 수정 및 가독성 개선</span>
+                                    <span><strong>Kor BeatBoard</strong> 시각화 보드 통합 출시</span>
                                 </li>
                                 <li className="flex gap-2">
                                     <span className="text-blue-500">✓</span>
-                                    <span>설명서 하단 연락처 <strong>이메일 자동 열기</strong> 링크 적용</span>
+                                    <span>자석 그룹화 (기차놀이) 및 노드 스냅 기능</span>
                                 </li>
                                 <li className="flex gap-2">
                                     <span className="text-blue-500">✓</span>
-                                    <span>개발자 크레딧(Antigravity) <strong>이스터 에그</strong> 스크롤 추가</span>
+                                    <span>메모지/캔버스 색상 커스텀 및 통합 JSON 저장</span>
                                 </li>
                             </ul>
                         </div>

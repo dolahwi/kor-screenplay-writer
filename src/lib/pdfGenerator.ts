@@ -95,6 +95,16 @@ export const generateAndDownloadPDF = async (titlePageData: any, documentJson: a
     const LINE_HEIGHT = 16;
     const MAX_Y = PAGE_HEIGHT - MARGIN - 30; // Leave room for footer
 
+    const printLines = (lines: string[], x: number, lineSpacing: number) => {
+        for (let i = 0; i < lines.length; i++) {
+            if (cursorY > MAX_Y) {
+                addNewPage();
+            }
+            doc.text(lines[i], x, cursorY);
+            cursorY += lineSpacing;
+        }
+    };
+
     if (documentJson && documentJson.content) {
         documentJson.content.forEach((node: any) => {
             if (node.type !== 'screenplayBlock') return;
@@ -111,26 +121,20 @@ export const generateAndDownloadPDF = async (titlePageData: any, documentJson: a
             if (format === 'scene') {
                 doc.setFont("NanumGothic", "bold");
                 cursorY += LINE_HEIGHT * 1.5; // margin-top
-                if (cursorY > MAX_Y) addNewPage();
 
                 const lines = doc.splitTextToSize(rawText, PAGE_WIDTH - MARGIN * 2);
-                doc.text(lines, MARGIN, cursorY);
-                cursorY += (lines.length * LINE_HEIGHT);
+                printLines(lines, MARGIN, LINE_HEIGHT);
                 doc.setFont("NanumGothic", "normal");
 
             } else if (format === 'action') {
                 cursorY += LINE_HEIGHT * 1.5; // margin-top
-                if (cursorY > MAX_Y) addNewPage();
 
                 const lines = doc.splitTextToSize(rawText, PAGE_WIDTH - MARGIN * 2);
-                doc.text(lines, MARGIN, cursorY, { lineHeightFactor: 2.0 });
-
                 const ACTION_LINE_HEIGHT = 22; // 11 * 2.0
-                cursorY += (lines.length * ACTION_LINE_HEIGHT);
+                printLines(lines, MARGIN, ACTION_LINE_HEIGHT);
                 cursorY += LINE_HEIGHT * 0.5; // margin-bottom
 
             } else if (format === 'dialogue') {
-                // margin 0
                 if (cursorY > MAX_Y) addNewPage();
 
                 const tabIndex = rawText.indexOf('\t');
@@ -149,17 +153,13 @@ export const generateAndDownloadPDF = async (titlePageData: any, documentJson: a
 
                 // Print Body
                 const lines = doc.splitTextToSize(body, PAGE_WIDTH - MARGIN * 2 - indentWidth);
-                doc.text(lines, MARGIN + indentWidth, cursorY, { lineHeightFactor: 2.0 });
-
-                // Font size is 11. Point size * lineHeightFactor = 22 space per line.
                 const DIALOGUE_LINE_HEIGHT = 22;
-                const blockHeight = Math.max(1, lines.length) * DIALOGUE_LINE_HEIGHT;
-                cursorY += blockHeight;
-            }
 
-            // Safety check
-            if (cursorY > MAX_Y) {
-                addNewPage();
+                if (lines.length > 0) {
+                    printLines(lines, MARGIN + indentWidth, DIALOGUE_LINE_HEIGHT);
+                } else {
+                    cursorY += DIALOGUE_LINE_HEIGHT; // If empty body
+                }
             }
         });
     }

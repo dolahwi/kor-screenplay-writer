@@ -1,14 +1,7 @@
-// @ts-expect-error next-pwa does not have type definitions
-import withPWA from 'next-pwa';
+import type { NextConfig } from 'next';
 
-const nextConfig = {
+const nextConfig: NextConfig = {
   reactStrictMode: true,
-  turbopack: {},
 };
 
-export default withPWA({
-  dest: 'public',
-  disable: process.env.NODE_ENV === 'development',
-  register: true,
-  skipWaiting: true,
-})(nextConfig);
+export default nextConfig;

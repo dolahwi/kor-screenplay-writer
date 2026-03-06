@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Nanum_Myeongjo } from "next/font/google";
 import "./globals.css";
 
@@ -7,6 +7,14 @@ const nanumMyeongjo = Nanum_Myeongjo({
   subsets: ["latin"],
   weight: ["400", "700", "800"],
 });
+
+export const viewport: Viewport = {
+  themeColor: "#18181b",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
 
 export const metadata: Metadata = {
   title: "Kor Screenplay Writer",
@@ -17,6 +25,9 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "Screenplay",
   },
+  icons: {
+    apple: "/icon-192x192.png",
+  },
 };
 
 export default function RootLayout({
@@ -26,6 +37,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" suppressHydrationWarning>
+      <head>
+        <link rel="apple-touch-icon" href="/icon-192x192.png" />
+      </head>
       <body className={`${nanumMyeongjo.variable} antialiased`}>
         {children}
       </body>
